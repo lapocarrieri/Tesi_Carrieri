@@ -8,7 +8,9 @@
 % Ho inoltre creato dei plot per vedere l'andamento delle particelle e l'andamento dell'errore 
 % rispetto al vero punto di applicazione. 
 
-
+%calculate the mean
+% calculate
+ 
 
 
 %% INIT
@@ -41,8 +43,8 @@ firstTime=true;
 %% Hyperparameters to be set
 
 %% Now there is the matlab simulation of the movement
-load('Initialization\initialization07.mat')
-tf=0.5;
+load('initialization_externalForce_link6_force=0DeltaT0012.mat')
+tf=20;
 disp('The point in the actual frame is:')
 disp(vpa(point',3));
     close all
@@ -80,8 +82,13 @@ f6=figure;
             GainEInv=inv(eye(1)+gainE*DeltaT) * gainE ;
 
 index=index-1;
-        
-while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
+initializaton=0;
+CASE = 0;
+FirstTouch=1;
+        DISTANCES={};
+        initial_position=[0 0 0];
+        initial_force = inv(T_actualframe(1:3,1:3))*ExternalForceApplied;
+while (t0<tf)%(freiquency * (t0) < 2*pi) % it ends when a circle is completed
      disp('time instant:')
      disp(t0);
      index = index + 1; 
@@ -166,6 +173,7 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
         print('the robot is subjected to a force')
         position=p;
         d2p_ref = Kp * err_p  - Kd *dp ;
+        
     end
 
 
@@ -244,9 +252,28 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
       % TauExternalForce0 = vpa((transpose(J_actualframe) * ExternalForceAppliedActualFrame)',3)
        %TauExternalForce =(transpose(J_force)*ExternalForceApplied)';
        %%force in world frame
-       TauExternalForce=(J_withwrenches'*[ExternalForceAppliedActualFrame;m])';
-       %return;
+       %TauExternalForce=(J_withwrenches'*[ExternalForceAppliedActualFrame;m])';
+
+       displacement = Point_intersected - initial_position;
+
+       distance = norm(displacement);
+       F_max = 100;
+       F_min=0;
+       if distance > 0
+            direction_of_displacement = displacement / distance;
+       else
+            direction_of_displacement = [0; 0; 0];
+       end
+       dot_product = dot(initial_force/norm(initial_force), direction_of_displacement);
        
+       F_applied = initial_force * (1 - dot_product * distance);
+       F_applied = max(F_min, min(norm(F_applied), F_max)) * (initial_force/norm(initial_force))
+       fapplieds{index}=F_applied;
+
+       ExternalForceAppliedActualFrame = inv(T_actualframe(1:3,1:3))*ExternalForceApplied;
+       S_fext=skew_symmetric(F_applied);
+       m=double(-S_fext*point(1:3));
+       TauExternalForce=(J_withwrenches'*[F_applied;m])';
         
 %          if index<60
 %                  TauExternalForce=[0 0 0 0 0  0 0];
@@ -258,18 +285,81 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
     %% COMPUTED TORQUE FL - dynamic model
     TauFL = (g + S*q0(8:14)' + B * Uref')';  % this is the applied torque 
   
-    Tau = TauFL+TauExternalForce; % this is the real tau applied
-
-    acc = (inv(B)* (Tau' - friction - S*q0(8:14)' - g))'  ;
- 
+     % this is the real tau applied
+    %% Reaction Strategies
     
-    % EULER INTEGRATION    
+        CASE=1  ;
+    
+    switch CASE
+        case 0
+            %do nothing
+        case 1
+            % Stop the robot
+            TauFL = -r; % Assuming 'q' is the vector of joint positions
+            
+        case 2
+            % Compensate gravity only
+            TauFL = g; % Assuming 'g(q)' computes the gravity compensation torque
+            
+        case 3
+            % Reflex torque reaction
+            TauFL = Kr * r + g; % 'Kr' is the reflex gain, 'r' is the reflex signal
+            
+        case 4
+            % Exponential decay of contact
+            TauFL = g + Kr * exp(-t * tc); % 'tc' is the decay constant
+            
+        case 5
+            % Admittance mode reaction
+            TauFL = g; % Gravity compensation
+            thetadot = Kr * r; % 'thetadot' is the joint velocity command
+            
+        case 6
+            % Time scaling
+            % This strategy might involve rescaling time in some way, so this is just a placeholder
+            %TauFL = ...; % Define the time scaling control law
+            
+        case 7
+            % Cartesian task preservation
+            % This strategy involves projecting the torque into a null space
+            % 'P' is the projection matrix, 'tau_task' is the torque related to the task
+            %P = ...; % Define the projection matrix
+            %tau_task = ...; % Define the task-related torque
+            TauFL = P * tau_task;
+            
+        case 8
+            % Admittance mode + floating reaction
+            % Combining admittance control with some floating base control, placeholder
+            %TauFL = ...; % Define the combined control law
+        case 9
+            J_withwrenchesss = ComputePoint_withWrenches(q0(1:7),LinkInCollision);
+            Kf=1;
+            %disp("force error")
+            force_error = F_initial - f_i %F in global frameJ_withwrenchesss = ComputePoint_withWrenches(q0(1:7),LinkInCollision);
+            forcerrors{index}=force_error;
+            mi=-skew_symmetric(force_error)*Point_intersected_Actualframe(1:3);
+
+            %tau1 = J_withwrenchesss'*[ExternalForceAppliedActualFrame;mi]
+            tau_force_control = J_withwrenchesss' * (Kf * [force_error;mi]);
+            TauFL = TauFL + tau_force_control';
+            
+           
+            
+        otherwise
+            error('Invalid CASE number');
+    end
+%%
+    % EULER INTEGRATION   
+    Tau = TauFL+TauExternalForce;
+    acc = (inv(B)* (Tau' - friction - S*q0(8:14)' - g))'  ;
     q0(1:7)  = q0(1:7) + q0(8:14) * DeltaT ; 
     pk=NaN(7);
     if q0(1:7)==pk
         return;
     end
-
+    if CASE== 10
+        acc = sign(q0(8:14))*10;
+    end
     q0(8:14) = acc * DeltaT + q0(8:14);            
 
     t0 = t0+DeltaT;
@@ -298,7 +388,7 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
         g_sampled{index}=(g);
         h_sampled{index}=(S'*q0(8:14)'-g);
        
-        samples=50;
+        samples=300;
        
     
     %% Residual Calculation and Force and point reconstruction
@@ -345,13 +435,14 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
                    sumRes = sumRes + r;
                    
                end
+               R(end,:)=r;
         end
       
     
      
         
-        %R = NoncausalButterworthFilter(R);
-              
+        R = NoncausalButterworthFilter(R);
+        r=R(end,:);      
             
      
         %% Point estimation - initialization of the contact particle filter
@@ -379,88 +470,19 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 
         if is_collided(index) == 1 
                 %J_withwrenches = ComputePoint_withWrenches(Q_sampled(index,:),link_collided(index));
+
+
                 J_withwrenches = ComputePoint_withWrenches(Q_sampled(index,:),link);
-
-                wrenches1=pinv(J_withwrenches')*Residual_calculated(index,:)';
-                error1 = [ExternalForceAppliedActualFrame;m]-wrenches1;
-               
-                % Calculate the SVD of matrix A
-                [U, S, V] = svd(J_withwrenches');
-                s = diag(S);
-                tol = max(size(J_withwrenches')) * eps(max(s));
-                rr = sum(s > tol);
-                U_r = U(:, 1:rr);
-                V_r = V(:, 1:rr);
-                S_inv = diag(1./s(1:rr));
-                wrenches2 = V_r * S_inv * U_r' * Residual_calculated(index,:)';
-               
-                error2 = [ExternalForceAppliedActualFrame;m]-wrenches2;
-               % DLS method
-%                it=1;
-%                
-%                for lambda=0:0.001:100
-%                       % Damping parameter (you can adjust this value)
-%                     wrenches4 = (J_withwrenches*J_withwrenches' + lambda^2*eye(size(J_withwrenches', 2))) \ (J_withwrenches*R(end,:)');
-%                     
-%                     error4 = [ExternalForceAppliedActualFrame;m]-wrenches4;
-%                     normerror4(it)=norm(error4);
-%                     it=it+1;
-%                end
-%               plot(normerror4)
-                lambda = 0.1;
-               wrenches3 = (J_withwrenches*J_withwrenches' + lambda^2*eye(size(J_withwrenches', 2))) \ (J_withwrenches*Residual_calculated(index,:)');
-                    
-                    error3 = [ExternalForceAppliedActualFrame;m]-wrenches3;
-                    if firstTime
-                        Weightcalculated
-                    end
-%                     W=eye(6);
-%                    W(1,1)=60;
-%                    W(2,2)=45;
-%                    W(3,3)=44;
-%                    W(4,4)=55;
-%                    W(5,5)=52;
-%                    W(6,6)=53;
-                   J_withwrenches_transpose=J_withwrenches';
-                   
-                   mu=0.01;
-                %J_withwrenchesweightedPseudoinverse3=inv(W)*J_withwrenches_transpose'*inv(J_withwrenches_transpose*inv(W)*J_withwrenches_transpose')
-                 J_withwrenchesweightedPseudoinverse4=inv(W_calculated)*J_withwrenches_transpose'*inv(J_withwrenches_transpose*inv(W_calculated)*J_withwrenches_transpose'+mu^2*eye(7));
-                       
-                wrenches4=J_withwrenchesweightedPseudoinverse4*Residual_calculated(index,:)';
-                error4 = [ExternalForceAppliedActualFrame;m]-wrenches4;
+                mu=0.01;
                 
-%                 % quadratic programming method
-%                 % Define the matrices A and C, and vectors b and D
-%                 A = [1, 2, 3; 4, 5, 6; 7, 8, 9];
-%                 b = [1; 2; 3];
-%                 C = [1, 0, 0; 0, 1, 0];
-%                 D = [3; 4];
-%                 
-%                 % Solve the quadratic programming problem
-%                 x = quadprog(A' * A, -A' * b, C, -D);
-%                 
-%                 % Display the solution
-%                 disp('Solution:')
-%                 disp(x); 
-            %PreviousPoint
-                WeightCalculation;
-                W2=diag(weights);
-                J_withwrenchesweightedPseudoinverse5=inv(W2)*J_withwrenches_transpose'*inv(J_withwrenches_transpose*inv(W2)*J_withwrenches_transpose'+mu^2*eye(7));
-                wrenches5=J_withwrenchesweightedPseudoinverse5*Residual_calculated(index,:)';
-                error5 = [ExternalForceAppliedActualFrame;m]-wrenches5;
-               errors(index,1,:)=error1;
-               errors(index,2,:)=error2;
-               errors(index,3,:)=error3;
-               errors(index,4,:)=error4;
-               errors(index,5,:)=error5;
-
-               continue;       
 %% Point calculation through f and m
-               
+               J_withwrenches = ComputePoint_withWrenches(Q_sampled(index,:),link);  % Code (explanation to be added)
+                wrenches1=pinv(J_withwrenches')*Residual_calculated(index,:)';  % Code (explanation to be added)
                %wrenches3=[ExternalForceAppliedActualFrame;m];
-              f_i=wrenches5(1:3);
-               m_i=wrenches5(4:6);
+
+              f_i=wrenches1(1:3);
+            
+               m_i=wrenches1(4:6);
                 Sf_i=[0 -f_i(3) f_i(2) ; f_i(3) 0 -f_i(1) ; -f_i(2) f_i(1) 0 ];
                 p_dc=Sf_i*m_i/(norm(f_i))^2;
 
@@ -490,13 +512,24 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
                 figure(f3),plot3( RealPointIntersected(1), RealPointIntersected(2),RealPointIntersected(3), 'o', 'MarkerSize', 4, 'MarkerFaceColor', 'r', 'LineWidth', 2);
                 hold on
                 Point_intersected = IntersectionPoint(line,link,Point_intersected(1:3),Meshes,f3,T);
-                disp('Point_intersected')
+                if size(Point_intersected,2)==3
+                    Point_intersected=Point_intersected';
+                end
+                Point_intersected_Actualframe = inv(T)*[Point_intersected;1];
+                %disp('Point_intersected')
                 if Point_intersected==[0 0 0]'
                     Point_intersected_actual_frame=closest_point_to_triangle(triangles, p_dc');
                     Point_intersected=T*[Point_intersected_actual_frame';1];
                     disp('point initialiazation not optimal')
                 end
-                Point_intersected=double(Point_intersected(1:3)');
+                Point_intersected=double(Point_intersected(1:3)')
+                if  Point_intersected ~= [0 0 0]'
+                    if FirstTouch==1
+                        initial_position = Point_intersected;
+                        initial_force = f_i;
+                        FirstTouch=0;
+                    end
+                end
             
 
                 
@@ -540,7 +573,21 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
         
         
         %estimated_cp=p_dc+lambda*f_ext/(norm(f_ext));
- 
+
+        %% Reaction strategy
+        % Possible options:
+        % collaboration: mantain the initial force in that direction
+        % not expected: stop immediately
+        % mantain the force while continuining the task
+        % collaborative 
+        % Assuming f_i, Frelax, Fabort, qd, q, xdot, J, Jc, K0, Kf, Kn, and qc are already defined in your workspace
+        if initializaton == 0
+            F_initial=f_i;
+            initializaton=1;
+        end
+        CASE=1;
+        % Check if the force is less than Frelax
+       continue;
         
         
    
@@ -635,14 +682,14 @@ end
 %TauExtForce
 samples2=samples;
 figure()
-plot(time(samples2:index), TauExtForce(samples2:index,:)', 'r', 'LineWidth', 2);
+plot(time(samples2:index-20), TauExtForce(samples2:index-20,:)', 'r', 'LineWidth', 2);
 hold on;
-plot(time(samples2+1:index-1), Residual_calculated(samples2+1:index-1,:), 'g', 'LineWidth', 2);
+plot(time(samples2+1:index-1-20), Residual_calculated(samples2+1:index-1-20,:), 'g', 'LineWidth', 2);
 hold off
 plots;
 
 return;
-robot_plot;
+ robot_plot;
  
 main_Carrieri;
 

@@ -1,6 +1,6 @@
 % Sample data, replace this with your actual 'errors' array
 n = 10;
-errors = errors(samples:end,:,:);
+errors = errors(samples:end-50,:,:);
 
 % Create a figure for the plots
 figure;

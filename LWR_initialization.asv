@@ -43,7 +43,7 @@ nn=1000;
         g_sampled=cells0;
         h_sampled=cells0;
 % Here all the parameters to decide for the computetion
-tf=10; % final time
+tf=0.3; % final time
 
 MaxVelocity=100;
 % External force applied to the link LINK in a point POINT in respect to
@@ -53,7 +53,7 @@ ExternalForceAppliedActualFrame=[2 4 3]';
 gain = 10*diag([100, 60, 160, 200, 120, 80, 125]); %gain for the residual calculation
  % real link subjected to the force 
 radius=0.05; % radius of the circle that the End Effector(EE) of the robot must follow
-DeltaT = 0.01; % sampling time of the robot
+DeltaT = 0.001; % sampling time of the robot
 %q0(1:7)=[0,0,pi/2,0,0,0,0]; % q initialized, the real q initialized is in
 % parameters.m
 frequency = 1; %frequency*time is the angle of the point of the circle
@@ -61,7 +61,7 @@ frequency = 1; %frequency*time is the angle of the point of the circle
 % follow
 threshold_Collision = 0.002; % threshold in order to calculate the residuals, if <0.1 the link is influenced by an external force
 threshold_sigma= 0.014; % threshold for the sigma calculated
-samples=300; % samples to calculate the residual, in the other projects I think more than 300 samples are used 
+samples=100; % samples to calculate the residual, in the other projects I think more than 300 samples are used 
 % but it depends by the sampling time, since the residual calculation start
 % after samples instant
 
@@ -189,8 +189,8 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
      disp('time instant:')
      disp(t0);
      
-     if index>300
-         save('initialization_externalForce_link6_force=0DeltaT0012')
+     if index>99
+         save('initialization_externalForce_link6')
          return;
       end
 %     %figure(f1);
@@ -354,8 +354,7 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
        ExternalForceAppliedActualFrame = inv(T_actualframe(1:3,1:3))*ExternalForceApplied;
        S_fext=skew_symmetric(ExternalForceAppliedActualFrame);
        m=double(-S_fext*point(1:3));
-       TauExternalForce=0*(J_withwrenches'*[ExternalForceAppliedActualFrame;m])'
-
+       TauExternalForce=(J_withwrenches'*[ExternalForceAppliedActualFrame;m])'
        %return;
        
         
