@@ -5,13 +5,10 @@ function [J,Jsubs] = compute_jacobian(qq,point,link)
     end
     %example of its use is: [J,Jsubs]=compute_jacobian([1 2 0 0 1 1 3 0 0.2 0.3 0.4 0.3 0 0],[1;2;2],7)
     syms q1 q2 q3 q4 q5 q6 q7
-    syms t
-    syms Q(t) Q1(t) Q2(t) Q3(t) Q4(t) Q5(t) Q6(t) Q7(t)
 q = [q1;q2;q3;q4;q5;q6;q7];
 J = zeros(4,7);
 Jsubs= zeros(4,7);
 A = cell(1, link);
-invA_numeric = cell(1, link);
 C1=cos(q1);
 S1=sin(q1);
 C2=cos(q2);

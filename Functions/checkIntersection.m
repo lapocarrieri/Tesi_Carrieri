@@ -1,31 +1,48 @@
 function [Point_intersected] = checkIntersection(vertices, line,PreviousPoint)
-    
+
 %     vertices.ConnectivityList = [1 2 3]
 %     vertices.Points=[0 0 0; 0 1 0; 1 0 0]
 %     line.origin=[0.2 0.2 -1]
 %     line.direction=[ 0.01 0.01 1];
 %     checkIntersection(vertices, line)
-
-    Point_intersected=[];
     intersection1=false;
+    distance=2;
+    Point_intersected=[];
     % Line origin and direction
-    origin = (line.origin)';
-    direction = (line.direction)';
+    origin = line.origin;
+    direction = line.direction;
+    i=0;
     
     % Möller–Trumbore algorithm
     epsilon = 1e-9; % small epsilon value for floating-point comparison
-    for i = 1:size(vertices.ConnectivityList, 1)
+    while( i <size(vertices.ConnectivityList, 1))
+        i=i+1;
+        if i==size(vertices.ConnectivityList, 1)-1
+            distance=distance*2;
+            i=1;
+        end
+        if distance>2
+            Point_intersected=[0 0 0];
+            break;
+        end
+        
         if size(Point_intersected,1)>1
             break;
         end
         
         indices = vertices.ConnectivityList(i, :);
-        
-        
         p1 = vertices.Points(indices(1), 1:3);
-        if PreviousPoint~=[0 0 0] & ( abs(PreviousPoint(1)-p1(1))>0.03 || abs(PreviousPoint(2)-p1(2))>0.03 || abs(PreviousPoint(3)-p1(3))>0.03 )
-            continue;
+        if PreviousPoint~=[0 0 0]
+                if  norm(PreviousPoint-p1)>distance 
+                    
+                    continue;
+                end
         end
+       vertices.ConnectivityList = vertices.ConnectivityList([1:i-1, i+1:end], :);
+%         for i=1:size(vertices.Points,1)
+%             norm(PreviousPoint-vertices.Points(i, 1:3))
+%         end
+
 
         p2 = vertices.Points(indices(2), 1:3);
         p3 = vertices.Points(indices(3), 1:3);
@@ -45,7 +62,7 @@ function [Point_intersected] = checkIntersection(vertices, line,PreviousPoint)
        
     edge1 = v2 - v1;
     edge2 = v3 - v1;
-    h = cross(direction, edge2);
+    h = cross(direction', edge2);
     
     a = dot(edge1, h);
  
@@ -55,7 +72,7 @@ function [Point_intersected] = checkIntersection(vertices, line,PreviousPoint)
     end
     
     f = 1 / a;
-    s = origin - v1;
+    s = origin' - v1;
     u = f * dot(s, h);
  
     if u < 0 || u > 1
@@ -77,35 +94,26 @@ function [Point_intersected] = checkIntersection(vertices, line,PreviousPoint)
     if t > epsilon
         intersection1 = true; % Line intersects the triangle
         
-        point = origin + t * direction; % Calculate intersection point
-        Point_intersected=[Point_intersected;point];
+        Point_intersected = origin' + t * direction % Calculate intersection point
+        
         
 %         disp(indices)
 %         disp(vpa(triangle,2))
         
         %plot3(triangle(:,1),triangle(:,2),triangle(:,3))
         
-        hold on
-        else
-        intersection = false; % Line intersects, but intersection point is behind the line
-        point = [];
+        break;
 
     end
+
     
 
     end    
-    
-    if intersection1
+    if intersection1 == false
             
-            %disp(Point_intersected);
+        Point_intersected=[0 0 0];
+    end
+
 
     
-             %plot3(Point_intersected(:,1),Point_intersected(:,2),Point_intersected(:,3), 'o', 'MarkerSize', 8, 'MarkerFaceColor', 'g', 'LineWidth', 4);
-    
-    else 
-        disp("no intersection points")
-        Point_intersected=[0 0 0 ];
-    end% Display the result
-
-
 end

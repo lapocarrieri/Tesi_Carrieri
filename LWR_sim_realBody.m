@@ -21,124 +21,13 @@ clear all;
    addpath 'Functions'
  
 %% Hyperparameters to be set
-LoadFile=-11;
 
-while LoadFile>0
-    
-
- 
-% Here all the parameters to decide for the computetion
-tf=10; % final time
-
-MaxVelocity=100;
-% External force applied to the link LINK in a point POINT in respect to
-% the reference frame of the link
-ExternalForceApplied=[1 2 3]'; 
-ExternalForceAppliedActualFrame=[2 4 3]';
-gain = 1000*diag([100, 60, 160, 200, 120, 80, 125]); %gain for the residual calculation
- % real link subjected to the force 
-radius=0.05; % radius of the circle that the End Effector(EE) of the robot must follow
-DeltaT = 0.001; % sampling time of the robot
-%q0(1:7)=[0,0,pi/2,0,0,0,0]; % q initialized, the real q initialized is in
-% parameters.m
-frequency = 1; %frequency*time is the angle of the point of the circle
-% in particular frequency represent the angular velocity that the EE must
-% follow
-threshold_Collision = 0.002; % threshold in order to calculate the residuals, if <0.1 the link is influenced by an external force
-threshold_sigma= 0.014; % threshold for the sigma calculated
-samples=100; % samples to calculate the residual, in the other projects I think more than 300 samples are used 
-% but it depends by the sampling time, since the residual calculation start
-% after samples instant
-
-
-
-
-%% Initialization
-    
-    q0=[0 0 0 0 0 0 0 0 0 0 0 0 0 0]; %initial configuration of the robot
-    PlotMeshRobot; % plot of all the meshes that represent the manipulator
-    link=5;
-random_index = randi([1, 556]);
-random_vector = Meshes.Points(random_index, :,link);
-
-random_noise = 0.005 * (2 * rand(1, 3) - 1);
-point = (random_vector(1:3))'
-ExternalForceAppliedActualFrame=[[0.03 0.04 0.05]'-point]*100;
-
-S_fext =[0 -ExternalForceAppliedActualFrame(3) ExternalForceAppliedActualFrame(2) ; ExternalForceAppliedActualFrame(3) 0 -ExternalForceAppliedActualFrame(1) ; -ExternalForceAppliedActualFrame(2) ExternalForceAppliedActualFrame(1) 0 ];
-m=-S_fext*point(1:3)
-Point_intersected=[0 0 0];
-n = 7; %number of joints
-Bsampled = cell(1, 1000);
-Residual_calculated=zeros(100,7);
-%Gain to calculate the residual, is high enough the residuals are equal to
-%the extarnal torque due to the external force
-
-
-double T;
-link_collided=zeros(1,1000);
-NumberNonCollidedSamples=0;
-fval = [];          
-
-masses = load("models\masses.txt");
-CoMs = load("models\center_of_masses.txt");
-
-gravity=9.81;
-Potentialenergy=0;
-sumTau = zeros(n, 1);
-syms lambda
-sumH = zeros(7, 1);
-is_initialized = false;
-sumRes = zeros(n, 1);
-R = zeros(samples, n);
-F_EXT_RECON = zeros(samples, 3);
-TAU_FRICTION = zeros(samples, n);
-
-
-Niterations=5;
-speed=1;
-num_part=60;
-chi = zeros(3,num_part);
-    
-Jtranspose_link=zeros(7,3);
-
-index = 1;
-%save the variables with a specific name
-%filename="Force"+ExternalForceApplied(1)+ExternalForceApplied(2)+ExternalForceApplied(3)+"Point"+point(1)+point(2)+point(3)+"Link"+link+".mat";
-parameters;
-
-
-
-
-
-
-
-%% Additional task to add to the null space of the principal task
-% I tried to mantain the z axis of the end effector constant
-
-% syms t QQ(t) Q1(t) Q2(t) Q3(t) Q4(t) Q5(t) Q6(t) Q7(t) 
-%  T = QtoP(q0(1:7),7);
-%  p_0 = T(1:3,4)+[0; 0; 0.31];
- 
-% QQ(t) =[ Q1(t) Q2(t) Q3(t) Q4(t) Q5(t) Q6(t) Q7(t)];
-%FinalOrientation = vpa(simplify(T(1:3,1:3)),3); % final orientation at
-%every time instant in order to add the final orientation
-% T_Q = QtoP(QQ(t),7);
-% diff(T,t);                                                                                                                                          cos(Q6(t))*(cos(Q2(t))*cos(Q4(t)) + cos(Q3(t))*sin(Q2(t))*sin(Q4(t))) + sin(Q6(t))*(cos(Q5(t))*(cos(Q2(t))*sin(Q4(t)) - 1.0*cos(Q3(t))*cos(Q4(t))*sin(Q2(t))) + sin(Q2(t))*sin(Q3(t))*sin(Q5(t)))
-% J5= jacobian(norm(-T_Q(1:3,3)),QQ(t));
-     for i=1:size(Meshes.ConnectivityList,1)
-        for j=1:3
-            triangles(:,j,i)=Meshes.Points(Meshes.ConnectivityList(i,j),1:3,link);
-        end
-     end
-     LoadFile=-1;
-     
-end
 %% Now there is the matlab simulation of the movement
-load('initialization1')
+load('Initialization\initialization45.mat')
 disp('The point in the actual frame is:')
 disp(vpa(point',3));
     close all
+    chi2 = zeros(3,20);
 
 
 f1=figure;
@@ -166,15 +55,17 @@ f6=figure;
             title('3D Point Cloud');
             grid on;
             CalculatedPoint=[0 0 0];
-            num_part=60;
+            gainE=100;
+            GainInv=inv(eye(7)+gain*DeltaT) * gain ;
+            GainEInv=inv(eye(1)+gainE*DeltaT) * gainE ;
+
+
+        
 while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
      disp('time instant:')
      disp(t0);
      
-%      if index>99
-%          save('initialization1')
-%          return;
-%       end
+
 %     %figure(f1);
      
     %set(f1, 'visible', 'on'); 
@@ -194,7 +85,7 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
     dp_ref(3,1) = dp_0(3);
     d2p_ff(3,1) = d2p_0(3);
     hold on
-    figure(f1),scatter3(p_ref(1,1),p_ref(2,1),p_ref(3,1),'g','SizeData',20)
+    %figure(f1),scatter3(p_ref(1,1),p_ref(2,1),p_ref(3,1),'g','SizeData',20)
      %% Change in the code if we want that a certain point make a specifi trajectory and not the EE
    
 
@@ -250,11 +141,10 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
     % Friction calculation
     %% Detection 
     if link_collided(index)>0
-        printf('the robot is subjected to a force')
+        print('the robot is subjected to a force')
         position=p;
         d2p_ref = Kp * err_p  - Kd *dp ;
     end
-    q0(8:14);
 
 
     %% TO BE FIXED
@@ -349,25 +239,8 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
   
     Tau = TauFL+TauExternalForce; % this is the real tau applied
 
-    acc = (inv(B) * (Tau' - friction - S*q0(8:14)' - g))'  ;
-
-
-    
-
-    Tau_applied  = B*acc' + friction + S*q0(8:14)' + g;  
-    
-
-    
-
-    accs = vertcat(accs,acc);
-    
-    accs_ref = vertcat(accs_ref,[Uref,Uref_task, Uref_redundant]);            
-    
-    task_vec = vertcat(task_vec, [p',dp',d2p',p_ref',dp_ref',d2p_ref']);
-    
-    torque_fl = vertcat(torque_fl,Tau);
-    
-    singular_values = vertcat(singular_values,sigma);       
+    acc = (inv(B)* (Tau' - friction - S*q0(8:14)' - g))'  ;
+ 
     
     % EULER INTEGRATION    
     q0(1:7)  = q0(1:7) + q0(8:14) * DeltaT ; 
@@ -380,12 +253,11 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 
     t0 = t0+DeltaT;
     
-    joints = vertcat(joints,q0);    
-    time = vertcat(time,t0);
+   
 
 
     %% save all the variables needed for the force reconstruction and the calculation of the residuals
-    TauExtForce(index,:)=TauExternalForce;
+    TauExtForce(index,:)=(TauExternalForce);
     Q_sampled(index,:)=q0(1:7);
 
 
@@ -394,16 +266,16 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
     %PointOfApplication(index,:)=QtoP(Q_sampled(end,:),link)*point;
 
     QD_sampled(index,:)=q0(8:14);
-    QDD_sampled(index,:)=acc;
+    QDD_sampled(index,:)=(acc);
 
 
-    TAU_sampled(index,:)=TauFL';
+    TAU_sampled(index,:)=(TauFL');
 
 
-        B_sampled{index}=B;
-        S_sampled{index}= S;
-        g_sampled{index}=g;
-        h_sampled{index}=S'*q0(8:14)'-g;
+        B_sampled{index}=(B);
+        S_sampled{index}=( S);
+        g_sampled{index}=(g);
+        h_sampled{index}=(S'*q0(8:14)'-g);
        
         
        
@@ -415,10 +287,14 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
             sumH=0;
             sumRes=0;
             p0=0;
-            R = zeros(samples, 7);
-             gainE=100;
+             
             sumEdot=0;
             sumSigma=0;
+% Parameter set 1: K0 = 25 Hz (FO); S = 80 Hz2, T = 22.4Hz (SOSM);
+% S 1 = 80 Hz2, T1 = 17.9 Hz, S 2 = 1600 Hz2, T2 = 80 Hz (SOSML).
+% Parameter set 2: K0 = 5Hz (FO); S = 20 Hz2, T = 11.2Hz (SOSM);
+% S 1 = 20 Hz2, T1 = 8.9 Hz, S 2 = 64 Hz2, T2 = 16 Hz (SOSML).
+  
 %% Momentum-based isolation of collisions
 
 
@@ -440,11 +316,12 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
                    r = zeros(7,1);
                    
                else
-                   r = inv(eye(7)+gain*DeltaT) * gain * ((B_sampled{t}*QD_sampled(t, :)' - p0) - (sumTau + sumH + sumRes)*DeltaT);
-
+                   %r = inv(eye(7)+gain*DeltaT) * gain * ((B_sampled{t}*QD_sampled(t, :)' - p0) - (sumTau + sumH + sumRes)*DeltaT);
+                    r =(inv(eye(7)+gain*DeltaT) * gain * ((B_sampled{t}*QD_sampled(t, :)' - p0) - (sumTau + sumH + sumRes)*DeltaT));
+                    
                    
                    sumRes = sumRes + r;
-                   R(t, :) = r';
+                   
                end
         end
       
@@ -452,6 +329,63 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
      
         
         %R = NoncausalButterworthFilter(R);
+                %% Sliding Mode Observer SOSM
+
+             S1=20; T1=8.9;
+
+
+            for tt = 1:samples+1
+            
+            t=index-samples+tt-1;
+            p=B_sampled{t}*QD_sampled(t, :)';
+                if tt == 1
+                   
+                   p_hat = p;
+                  
+                   sigma = zeros(7,1);
+                   dsigma= zeros(7,1);
+                   
+                else
+                    p=p_hat-p;
+                   signP=tanh(p*50);
+                   dp_hat=TAU_sampled(t,:)'+S_sampled{t}'*QD_sampled(t,:)'-g_sampled{t}+sigma-T1*signP;
+                   dsigma=dsigma-S1*signP;
+                   p_hat=p_hat+DeltaT*dp_hat;
+                   sigma=sigma+DeltaT*dsigma;
+                    
+               end
+            end
+            ExternalTauCalculatedSOSM=sigma;
+            
+        %% Sliding Mode Observer SOSML
+
+             S1=20; T1=8.9;
+             S2=64; T2=16;
+
+
+            for tt = 1:samples+1
+            
+            t=index-samples+tt-1;
+            p=B_sampled{t}*QD_sampled(t, :)';
+                if tt == 1
+                   
+                   p_hat = p;
+                  
+                   sigma = zeros(7,1);
+                   dsigma= zeros(7,1);
+                   
+                else
+                    p=p_hat-p;
+                   signP=tanh(p*50);
+                   dp_hat=TAU_sampled(t,:)'+S_sampled{t}'*QD_sampled(t,:)'-g_sampled{t}+sigma-T2*p-T1*signP;
+                   dsigma=dsigma-S1*signP-S2*p;
+                   p_hat=p_hat+DeltaT*dp_hat;
+                   sigma=sigma+DeltaT*dsigma;
+                    
+               end
+            end
+            ExternalTauCalculatedSOSML=sigma;
+            
         %% Energy-based detection
         for tt = 1:samples+1
 
@@ -467,27 +401,29 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
                    sumSigma=0;
                    sigma = 0;
                else
-                   sigma = inv(eye(1)+gainE*DeltaT) * gainE * ((1/2*QD_sampled(t, :)*B_sampled{t}*QD_sampled(t, :)' - p0) - (sumEdot + sumSigma)*DeltaT);
-
+                   sigma =  GainEInv*((1/2*QD_sampled(t, :)*B_sampled{t}*QD_sampled(t, :)' - p0) - (sumEdot + sumSigma)*DeltaT);
+                    
                    
                    sumSigma = sumSigma + sigma;
-                   Sigma(t, :) = sigma;
                end
         end
       
         
         %R = NoncausalButterworthFilter(R);
         %% Point estimation - initialization of the contact particle filter
-        r=R(end,:);
-        errorTorque=vpa(abs(R(end,:)-TauExternalForce),2)
-        continue;
-        Residual_calculated(index,:)=R(end,:);
-        Sigma_calculated(index)=Sigma(end);
+        r=r';
+        errorTorque=vpa(norm(R(end,:)-TauExternalForce),2)
+        
+        errorSlidingMode=vpa(norm(TauExtForce(index,:)'-ExternalTauCalculatedSOSM),2)
+        errorSlidingModeL=vpa(norm(TauExtForce(index,:)'-ExternalTauCalculatedSOSML),2)
+        Residual_calculated(index,:)=r;
+        Sigma_calculated(index)=sigma;
+
         %figure(f4),plotTorque(TauExtForce,Residual_calculated,index, 3,DeltaT)
-        [is_collided_sigma] = getLink_withSigma(Sigma(end, :),threshold_sigma,QD_sampled(end, :));
+        [is_collided_sigma] = getLink_withSigma(sigma,threshold_sigma,QD_sampled(end, :));
 
 
-        [link_collided(index),is_collided_r] = getLink_withResidual(R(end,:),threshold_Collision);
+        [link_collided(index),is_collided_r] = getLink_withResidual(r,threshold_Collision);
   
                 is_collided(index)=0;
   
@@ -580,9 +516,10 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 %                 % Display the solution
 %                 disp('Solution:')
 %                 disp(x); 
-            
-                WeightCalculation;
-                W=diag(weights);
+            %PreviousPoint
+                %WeightCalculation;
+                %W=diag(weights)
+                
                 J_withwrenchesweightedPseudoinverse=W^(-1/2)*pinv(J_withwrenches'*W^(-1/2));
                        wrenches5=J_withwrenchesweightedPseudoinverse*R(end,:)';
                            
@@ -591,11 +528,11 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
                         norm(error5)
                
                % null-space method
-               norm(error1)
-               norm(error2)
-               norm(error3)
-               norm(error4) 
-               norm(error5)
+%                norm(error1)
+%                norm(error2)
+%                norm(error3)
+%                norm(error4) 
+%                norm(error5)
                
                %wrenches3=[ExternalForceAppliedActualFrame;m];
               f_i=wrenches5(1:3);
@@ -625,13 +562,13 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
                 line.origin=line.origin(1:3);
                 line.direction=T_actualframe*[Lambda_coefficient;1];
                 line.direction=line.direction(1:3);
-                RealPointIntersected=T_actualframe*[point;1];
+                RealPointIntersected=double(T_actualframe*[point;1]);
                 disp(vpa(RealPointIntersectedWorldFrame,2))
                 figure(f3),plot3( RealPointIntersected(1), RealPointIntersected(2),RealPointIntersected(3), 'o', 'MarkerSize', 4, 'MarkerFaceColor', 'r', 'LineWidth', 2);
                 hold on
-               
-                Point_intersected = IntersectionPoint(line,link,Q_sampled(index,:),RealPointIntersected(1:3),Meshes,f3);
-                if Point_intersected==[0 0 0]
+                %Point_intersected = IntersectionPoint(line,link,Q_sampled(index,:),RealPointIntersected(1:3),Meshes,f3);
+                Point_intersected=Point_intersected+[0.15,-0.1,0.07]
+                if Point_intersected==[0 0 0]'
                     Point_intersected_actual_frame=closest_point_to_triangle(triangles, p_dc');
                     Point_intersected=T_actualframe*[Point_intersected_actual_frame';1];
                     disp('point initialiazation not optimal')
@@ -670,6 +607,7 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
         end
         if NumberNonCollidedSamples>10
             chi = zeros(3,num_part);
+            chi2 = zeros(3,num_part);
         end
 %           if Point_intersected==[ 0 0 0]
 %                 break;
@@ -693,7 +631,7 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
             Rotation = T(1:3,1:3);
              tran = T(1:3,4);
 
-         Point_intersectedActualFrame=double(inv(T)*[Point_intersected';1]);
+         Point_intersectedActualFrame=double(inv(T)*[Point_intersected;1]);
         disp('Point_intersectedActualFrame:')
         disp(vpa(Point_intersectedActualFrame(1:3)',2))
            ErrorBeforeCPF_ActualFrame=abs(Point_intersectedActualFrame(1:3)-point);
@@ -706,17 +644,17 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
              
            disp('CPF:')
            is_initialized=false;
-          num_part=60;
+           num_part=10;
+           Niterations=4;
         for i=1:speed:Niterations
-            size(chi)
-          next_part=60/i;
+            
             %disp(i+'-th iteration for the CPF');
             %is_collided
             % starting Niterations before the end the contact particle
             % filter is iterated Niterations times until the last index.
             % this is done at every time instant so if the number of
             % iterations is high the code is very slow 
-                      figure(f6),scatter3(point(1),point(2),point(3),'h', 'filled' ,'SizeData', 50);
+            figure(f6),scatter3(point(1),point(2),point(3),'h', 'filled' ,'SizeData', 50);
             % Add a text label
             hold on
                 figure(f6),text(point(1),point(2),point(3), 'Real Point', 'FontSize', 6, 'HorizontalAlignment', 'left');
@@ -764,7 +702,7 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
      
             generated_points=zeros(3,num_part);
             
-            [chi, W_prime,generated_points,num_part] = cpf_RealPoint(num_part,next_part, chi, Q_sampled(index,:), Residual_calculated(index,:), Point_intersectedActualFrame,link_collided(index),is_initialized,Meshes,triangles,f6,generated_points);
+            [chi,chi2, W_prime,generated_points] = cpf_RealPoint(num_part, chi, Q_sampled(index,:), Residual_calculated(index,:), Point_intersectedActualFrame,link_collided(index),is_initialized,Meshes,triangles,f6,generated_points);
             hold on
             
             
@@ -772,11 +710,14 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 
             figure(f6),scatter3(chi(1,:),chi(2,:),chi(3,:),'y', 'filled' ,'SizeData', 50);
             hold off
-            
-             CalculatedPoint=computeBari(chi)
+            disp('ecco:')
+             CalculatedPoint=computeBari(chi);
+             CalculatedPoint2=computeBari(chi2);
              
              %ErrorAfterCPF(:,ind)
-             ErrorAfterCPF(:,ind)=abs(CalculatedPoint(1:3)'-point);
+
+             ErrorAfterCPF1(:,ind)=norm(CalculatedPoint(1:3)'-point);
+             ErrorAfterCPF2(:,ind)=norm(CalculatedPoint2(1:3)'-point);
              
             
             
@@ -811,9 +752,9 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
         end
         %disp('Error After CPF World Frame:')
         %disp(vpa(ErrorAfterCPFWorldFrame,2));
-        figure(f5),plot(1:size(ErrorAfterCPF,2),norm(ErrorAfterCPF));
-        hold on
-        figure(f5),plot(1:size(ErrorAfterCPFWorldFrame,2),norm(ErrorAfterCPFWorldFrame));
+      %  figure(f5),plot(1:size(ErrorAfterCPF,2),norm(ErrorAfterCPF));
+       % hold on
+        %figure(f5),plot(1:size(ErrorAfterCPFWorldFrame,2),norm(ErrorAfterCPFWorldFrame));
         %plot the cylinder
        % figure(f2),h2 = surf(double(X_prime),double(Y_prime),double(Z_prime));
         %xlabel('x');
@@ -847,69 +788,66 @@ end
 return;
  robot_plot;
  
-
-
-
 main_Carrieri;
 
 
 
-function plotForces(out, dofs, lineWidth)
-    for i=1:3
-        plot(out.tout, out.contact_force.Data(:,i), "lineWidth", lineWidth);
-        hold on
-        plot(out.tout, out.estimated_force.Data(:,i), "lineWidth", lineWidth);
-    end
-    legend("real F_x", "estimated F_x", "real F_y", "estimated F_y" , "real F_z", "estimated F_z");
-    grid on
-end
-
-function plotForces2(time,Fc, lineWidth)
-
-    for i=1:3
-        plot(time(1:length(Fc(i,:))), Fc(i,:), "lineWidth", lineWidth);
-        hold on 
-    end
-
-    grid on
-end
-function plotTorque(TauExtForce,Residual_calculated,index, lineWidth,DeltaT)
-    legend_torque = [];
-    
-    for i=1:7
-        plot(i*DeltaT, Residual_calculated(index,i), "lineWidth", lineWidth);
-        hold on
-        plot(i*DeltaT, TauExtForce(index,i), "lineWidth", lineWidth);
-        hold on
-        real_contact_str = "real tauk_"+i;
-        estimated_contact_str = "estimated tauk_"+i;
-        legend_torque = [legend_torque, [real_contact_str, estimated_contact_str]];
-    end
-    legend(legend_torque);
-    grid on
-end
-
-
-
-
-function plotArrow(point, direction, arrow_color, arrow_size)
-        %this plot the arrow at the beginning of the line <---
-        last_point1 = point + 0.01*(direction+tan(60));
-        last_point2 = point + 0.01*(direction+-tan(60));
-        cf_plot1 = line([point(1), last_point1(1)], [point(2), last_point1(2)], [point(3), last_point1(3)],"color", arrow_color, "lineWidth", arrow_size);
-        cf_plot2 = line([point(1), last_point2(1)], [point(2), last_point2(2)], [point(3), last_point2(3)],"color", arrow_color, "lineWidth", arrow_size);
-end
-
-%plot num_part particlces on the cylinder sourface where
-%r is the cylinder radius h is its height and c its center 
-function plotParticles(chi,R, t)
-    chi = R*chi(:,:)+t;
-    for i=1:length(chi)
-        hold on 
-        plot3(chi(1,i),chi(2, i), chi(3, i),".", "Color", "red");
-    end
-   
-end
+% function plotForces(out, dofs, lineWidth)
+%     for i=1:3
+%         plot(out.tout, out.contact_force.Data(:,i), "lineWidth", lineWidth);
+%         hold on
+%         plot(out.tout, out.estimated_force.Data(:,i), "lineWidth", lineWidth);
+%     end
+%     legend("real F_x", "estimated F_x", "real F_y", "estimated F_y" , "real F_z", "estimated F_z");
+%     grid on
+% end
+% 
+% function plotForces2(time,Fc, lineWidth)
+% 
+%     for i=1:3
+%         plot(time(1:length(Fc(i,:))), Fc(i,:), "lineWidth", lineWidth);
+%         hold on 
+%     end
+% 
+%     grid on
+% end
+% function plotTorque(TauExtForce,Residual_calculated,index, lineWidth,DeltaT)
+%     legend_torque = [];
+%     
+%     for i=1:7
+%         plot(i*DeltaT, Residual_calculated(index,i), "lineWidth", lineWidth);
+%         hold on
+%         plot(i*DeltaT, TauExtForce(index,i), "lineWidth", lineWidth);
+%         hold on
+%         real_contact_str = "real tauk_"+i;
+%         estimated_contact_str = "estimated tauk_"+i;
+%         legend_torque = [legend_torque, [real_contact_str, estimated_contact_str]];
+%     end
+%     legend(legend_torque);
+%     grid on
+% end
+% 
+% 
+% 
+% 
+% function plotArrow(point, direction, arrow_color, arrow_size)
+%         %this plot the arrow at the beginning of the line <---
+%         last_point1 = point + 0.01*(direction+tan(60));
+%         last_point2 = point + 0.01*(direction+-tan(60));
+%         cf_plot1 = line([point(1), last_point1(1)], [point(2), last_point1(2)], [point(3), last_point1(3)],"color", arrow_color, "lineWidth", arrow_size);
+%         cf_plot2 = line([point(1), last_point2(1)], [point(2), last_point2(2)], [point(3), last_point2(3)],"color", arrow_color, "lineWidth", arrow_size);
+% end
+% 
+% %plot num_part particlces on the cylinder sourface where
+% %r is the cylinder radius h is its height and c its center 
+% function plotParticles(chi,R, t)
+%     chi = R*chi(:,:)+t;
+%     for i=1:length(chi)
+%         hold on 
+%         plot3(chi(1,i),chi(2, i), chi(3, i),".", "Color", "red");
+%     end
+%    
+% end
 
 
 %plot the RF in a generic point with a generic orientation. The lenght of

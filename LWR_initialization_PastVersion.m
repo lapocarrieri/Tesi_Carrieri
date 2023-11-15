@@ -21,9 +21,7 @@ clear all;
    addpath 'Functions'
  
 %% Hyperparameters to be set
-LoadFile=11;
 
-while LoadFile>0
     
 
  
@@ -46,7 +44,7 @@ frequency = 1; %frequency*time is the angle of the point of the circle
 % follow
 threshold_Collision = 0.002; % threshold in order to calculate the residuals, if <0.1 the link is influenced by an external force
 threshold_sigma= 0.014; % threshold for the sigma calculated
-samples=10; % samples to calculate the residual, in the other projects I think more than 300 samples are used 
+samples=100; % samples to calculate the residual, in the other projects I think more than 300 samples are used 
 % but it depends by the sampling time, since the residual calculation start
 % after samples instant
 
@@ -57,7 +55,16 @@ samples=10; % samples to calculate the residual, in the other projects I think m
     
     q0=[0 0 0 0 0 0 0 0 0 0 0 0 0 0]; %initial configuration of the robot
     PlotMeshRobot; % plot of all the meshes that represent the manipulator
+    link=5;
+random_index = randi([1, 556]);
+random_vector = Meshes.Points(random_index, :,link);
 
+random_noise = 0.005 * (2 * rand(1, 3) - 1);
+point = (random_vector(1:3))'
+ExternalForceAppliedActualFrame=[[0.03 0.04 0.05]'-point]*100;
+
+S_fext =[0 -ExternalForceAppliedActualFrame(3) ExternalForceAppliedActualFrame(2) ; ExternalForceAppliedActualFrame(3) 0 -ExternalForceAppliedActualFrame(1) ; -ExternalForceAppliedActualFrame(2) ExternalForceAppliedActualFrame(1) 0 ];
+m=-S_fext*point(1:3)
 Point_intersected=[0 0 0];
 n = 7; %number of joints
 Bsampled = cell(1, 1000);
@@ -122,62 +129,67 @@ parameters;
             triangles(:,j,i)=Meshes.Points(Meshes.ConnectivityList(i,j),1:3,link);
         end
      end
-     LoadFile=-1;
-     
-end
+
 %% Now there is the matlab simulation of the movement
 
+disp('The point in the actual frame is:')
+disp(vpa(point',3));
+    close all
 
 
-S_fext =[0 -ExternalForceAppliedActualFrame(3) ExternalForceAppliedActualFrame(2) ; ExternalForceAppliedActualFrame(3) 0 -ExternalForceAppliedActualFrame(1) ; -ExternalForceAppliedActualFrame(2) ExternalForceAppliedActualFrame(1) 0 ];
-    link=6;
-Pointslink = Meshes.Points(:, :,link);
-    surface_points = Pointslink(Pointslink(:, 2, 1) ~= 0, :, :);
-    LastPoint=size(surface_points,1);
-    indecs=800;
-         random_vector=Meshes.Points(indecs, :,link);
-        
-        point = (random_vector(1:3))';
-        ExternalForceAppliedActualFrame=[[0.03 0.04 0.05]'-point]*100*rand();
-        S_fext =[0 -ExternalForceAppliedActualFrame(3) ExternalForceAppliedActualFrame(2) ; ExternalForceAppliedActualFrame(3) 0 -ExternalForceAppliedActualFrame(1) ; -ExternalForceAppliedActualFrame(2) ExternalForceAppliedActualFrame(1) 0 ];
- 
-        m=-S_fext*point(1:3);
-         p_ref(:,1) = f(q0(1),q0(2),q0(3),q0(4),q0(5),q0(6));
-         dp_ref(:,1) = [0 0 0]';
-         d2p_ff(:,1) =[0 0 0]';
-close all
-tic
-while (toc<2000)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
-     disp(t0);  
-   if mod(t0, 0.1) == 0
-       indecs=indecs+1;
-         random_vector=Meshes.Points(indecs, :,link);
-        
-        point = (random_vector(1:3))';
-        
-        m=-S_fext*point(1:3);
-   end
-   if mod(t0, 0.3) == 0
-     ExternalForceAppliedActualFrame=[[0.03 0.04 0.05]'-point]*100*rand();
-     S_fext =[0 -ExternalForceAppliedActualFrame(3) ExternalForceAppliedActualFrame(2) ; ExternalForceAppliedActualFrame(3) 0 -ExternalForceAppliedActualFrame(1) ; -ExternalForceAppliedActualFrame(2) ExternalForceAppliedActualFrame(1) 0 ];
- 
-   end
-    
+f1=figure;
+
+%figure(f1),scatter3(p_0(1), p_0(2), p_0(3), 'filled');
+set(f1, 'Name', 'End effector points');
+xlabel('X');
+ylabel('Y');
+zlabel('Z');
+
+f2=figure;
+set(f2, 'Name', 'contact particle filter points');
+xlabel('X');
+ylabel('Y');
+zlabel('Z');
+f3=figure;
+f4=figure;
+f5=figure;
+            
+f6=figure;
+      
+            xlabel('X');
+            ylabel('Y');
+            zlabel('Z');
+            title('3D Point Cloud');
+            grid on;
+            CalculatedPoint=[0 0 0];
+while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
+     disp('time instant:')
+     disp(t0);
+%      
+     if index>99
+         save('initialization25')
+         return;
+      end
+%     %figure(f1);
+     
+    %set(f1, 'visible', 'on'); 
+
     
     %% TRAJ (CIRCLE)
-        ranges=[1000 800 600 400 200 100 50];
 
+    p_ref(1,1) = p_0(1) -  radius * (1 - cos(frequency * (t0)));
+    dp_ref(1,1) = dp_0(1) - radius * frequency * sin(frequency * (t0));
+    d2p_ff(1,1) = d2p_0(1) - radius * frequency * frequency * cos(frequency * (t0));
 
-        for i = 1:7
-            q0(i) = q0(i) + 2*pi/ranges(i);
-        end
-       
-
-        p_ref(:,2)=p_ref(:,1);
-        p_ref(:,1) = f(q0(1),q0(2),q0(3),q0(4),q0(5),q0(6));
-        dp_ref(:,2)=dp_ref(:,1);
-        dp_ref(:,1) = (p_ref(:,2)-p_ref(:,1))/DeltaT;
-        d2p_ff(:,1) = (dp_ref(:,1)-dp_ref(:,1))/DeltaT; 
+    p_ref(2,1) = p_0(2) -  radius * (sin(frequency * (t0)));
+    dp_ref(2,1) = dp_0(2) - radius * frequency * cos(frequency * (t0));
+    d2p_ff(2,1) = d2p_0(2) + radius * frequency * frequency * sin(frequency * (t0));
+    
+    p_ref(3,1) = p_0(3) ;
+    dp_ref(3,1) = dp_0(3);
+    d2p_ff(3,1) = d2p_0(3);
+    hold on
+    figure(f1),scatter3(p_ref(1,1),p_ref(2,1),p_ref(3,1),'g','SizeData',20)
      %% Change in the code if we want that a certain point make a specifi trajectory and not the EE
    
 
@@ -195,7 +207,7 @@ while (toc<2000)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
  % EE point calculated with f
  %now if the force is applied to the end effector a faster comutation is
  %used so J_LWR       
-p = f(q0(1),q0(2),q0(3),q0(4),q0(5),q0(6));
+    p = f(q0(1),q0(2),q0(3),q0(4),q0(5),q0(6));
 
 
     J = J_LWR(q0(1),q0(2),q0(3),q0(4),q0(5),q0(6));
@@ -210,12 +222,17 @@ p = f(q0(1),q0(2),q0(3),q0(4),q0(5),q0(6));
     
     d2p = dJ * q0(8:14)' + J * accs(end,:)';
     
-    err_p = p_ref(:,1) - p;
+    err_p = p_ref - p;
 
 
-    err_dp = dp_ref(:,1) - dp;
-  
-    plot3(p(1), p(2), p(3), 'ro', 'MarkerSize',2);
+    err_dp = dp_ref - dp;
+    
+
+
+
+    %figure(f1),plot3(p(1), p(2), p(3), 'ro', 'MarkerSize',2);
+    hold on
+    
     %% PD KINEMATIC  
     d2p_ref = Kp * err_p + Kd * err_dp + d2p_ff;
     %d2p_ref = Kp * err_p + Kd * error_theta + d2p_ff;
@@ -226,7 +243,15 @@ p = f(q0(1),q0(2),q0(3),q0(4),q0(5),q0(6));
     Pj = eye(7) - pinv(J) * J;  
     
     % Friction calculation
-    
+    %% Detection 
+    if link_collided(index)>0
+        printf('the robot is subjected to a force')
+        position=p;
+        d2p_ref = Kp * err_p  - Kd *dp ;
+    end
+    q0(8:14);
+
+
     %% TO BE FIXED
 %     friction =  0.1*(-A_friction .* sign(q0(8:14)) - 0.001 * q0(8:14));
     friction =  0.0;   
@@ -290,39 +315,36 @@ p = f(q0(1),q0(2),q0(3),q0(4),q0(5),q0(6));
 
 %     ForcePointApplication = QtoP(q0(1:7),link);
 %      ForcePointApplication=ForcePointApplication(1:3,4)+[0; 0; 0.31];
- %     [J_link,~] = compute_jacobian(q0(1:7),[0.1,01,link);
-%      Jtranspose_link(1:5,1:3) = transpose(J_link(1:3,:));
-%     
 
-     %TauExternalForce = (Jtranspose_link*ExternalForce)';
-     %size(TauExternalForce)
-     
-
+ 
        %external torque applied to the system
+       
        T_actualframe= QtoP(q0(1:7),link);
-        J_actualframe=T_actualframe(1:3,1:3)'*J_force;    
-
-         %TauExternalForce = (transpose(J_actualframe) * ExternalForceAppliedActualFrame)';
-       TauExternalForce =(transpose(J_force)*ExternalForceApplied)';
+       RealPointIntersectedWorldFrame=T_actualframe*[point;1];
+        J_actualframe=T_actualframe(1:3,1:3)'*J_force;
         
 
-       %TauExternalForce=[0 0 0 0 0 0  0];
+      % TauExternalForce0 = vpa((transpose(J_actualframe) * ExternalForceAppliedActualFrame)',3)
+       %TauExternalForce =(transpose(J_force)*ExternalForceApplied)';
+       %%force in world frame
+       J_withwrenches = ComputePoint_withWrenches(q0(1:7),link);
+       TauExternalForce=(J_withwrenches'*[ExternalForceAppliedActualFrame;m])';
+       %return;
+       
+        
+%          if index<60
+%                  TauExternalForce=[0 0 0 0 0  0 0];
+%          end
 
     
-   
-  
+   %TauExternalForce=[0 0 0 0 0  0 0];
     
     %% COMPUTED TORQUE FL - dynamic model
-     TauFL = (g + S*q0(8:14)' + B * Uref')';  % this is the applied torque 
+    TauFL = (g + S*q0(8:14)' + B * Uref')';  % this is the applied torque 
   
     Tau = TauFL+TauExternalForce; % this is the real tau applied
 
     acc = (inv(B) * (Tau' - friction - S*q0(8:14)' - g))'  ;
- 
-    if isnan(acc)
-        disp("NaN value encountered. Exiting the loop.");
-        break;  % Exit the loop
-    end
 
 
     
@@ -336,7 +358,7 @@ p = f(q0(1),q0(2),q0(3),q0(4),q0(5),q0(6));
     
     accs_ref = vertcat(accs_ref,[Uref,Uref_task, Uref_redundant]);            
     
-    task_vec = vertcat(task_vec, [p',dp',d2p',p_ref(:,1)',dp_ref(:,1)',d2p_ref']);
+    task_vec = vertcat(task_vec, [p',dp',d2p',p_ref',dp_ref',d2p_ref']);
     
     torque_fl = vertcat(torque_fl,Tau);
     
@@ -346,7 +368,6 @@ p = f(q0(1),q0(2),q0(3),q0(4),q0(5),q0(6));
     q0(1:7)  = q0(1:7) + q0(8:14) * DeltaT ; 
     pk=NaN(7);
     if q0(1:7)==pk
-         disp("NaN value encountered. Exiting the loop.");
         return;
     end
 
@@ -364,99 +385,29 @@ p = f(q0(1),q0(2),q0(3),q0(4),q0(5),q0(6));
 
 
 
+
+    %PointOfApplication(index,:)=QtoP(Q_sampled(end,:),link)*point;
+
     QD_sampled(index,:)=q0(8:14);
     QDD_sampled(index,:)=acc;
+
+
     TAU_sampled(index,:)=TauFL';
-    B_sampled{index}=B;
-        S_sampled{index}=S;
+
+
+        B_sampled{index}=B;
+        S_sampled{index}= S;
         g_sampled{index}=g;
         h_sampled{index}=S'*q0(8:14)'-g;
-
+       
         
+       
     
-    %% Residual Calculation and Force and point reconstruction
-    if index>samples % in order to have enough samples to calculate the residuals
-            sumTau=0;
-            sumH=0;
-            sumRes=0;
-            p0=0;
-            R = zeros(samples, 7);
-             gainE=100;
-            sumEdot=0;
-            sumSigma=0;
-%% Momentum-based isolation of collisions
-        for tt = 1:samples+1
-
-            t=index-samples+tt-1;
-          
-            h=(S_sampled{t})'*QD_sampled(t,:)'-g_sampled{t};
-           
-     
-            sumTau = sumTau + TAU_sampled(t,:)';
-            sumH = sumH + h;
-
-        
-               if tt == 1
-                   
-                   p0 = B_sampled{t}*QD_sampled(t, :)';
-                   
-                   r = zeros(7,1);
-                   
-               else
-                   r = inv(eye(7)+gain*DeltaT) * gain * ((B_sampled{t}*QD_sampled(t, :)' - p0) - (sumTau + sumH + sumRes)*DeltaT);
-
-                   
-                   sumRes = sumRes + r;
-                   R(t, :) = r';
-               end
-        end
-      
-    
-     
-        
-        %R = NoncausalButterworthFilter(R);
-        %% Energy-based detection
-        for tt = 1:samples+1
-
-            t=index-samples+tt-1;
-
-            sumEdot = sumEdot + QD_sampled(t,:)*(TAU_sampled(t,:)'- g_sampled{t});
-           
-
-        
-               if tt == 1
-                   
-                   p0 = 1/2*QD_sampled(t, :)*B_sampled{t}*QD_sampled(t, :)';
-                   sumSigma=0;
-                   sigma = 0;
-               else
-                   sigma = inv(eye(1)+gainE*DeltaT) * gainE * ((1/2*QD_sampled(t, :)*B_sampled{t}*QD_sampled(t, :)' - p0) - (sumEdot + sumSigma)*DeltaT);
-
-                   
-                   sumSigma = sumSigma + sigma;
-                   Sigma(t, :) = sigma;
-               end
-        end
-      
-        
-        %R = NoncausalButterworthFilter(R);
-        %% Point estimation - initialization of the contact particle filter
-
-        Tau_sigma = Sigma(end, :);
-        link_calculated(index)=link;
-        point_calculated(index,:)=point;
-        Tau_residual=R(end,:);
-        Residual_calculated(index,:)=Tau_residual; 
-        Sigma_calculated(index,:)=Tau_sigma; 
-      
-
-
-     end
 index = index + 1; 
 
+
+
+
+%% Collaboration
     
 end
- save('N700','Residual_calculated','link_calculated','point_calculated' )
-
-
- 

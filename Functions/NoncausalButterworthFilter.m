@@ -1,6 +1,8 @@
 %%%%%%%%%%%%
 % NEW CODE %
 %%%%%%%%%%%%
+
+
 function Matrix_filt = NoncausalButterworthFilter(Matrix)
 % The function returns the filtered version of Matrix.
 % Matrix collects the time history of a vector (it is a thin matrix). 

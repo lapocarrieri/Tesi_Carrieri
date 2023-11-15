@@ -4,13 +4,13 @@
 % gamma: estimated external torque
 % estimated_cp: estimated contact point with the deterministic method used in
 %                the initialization phase
-function [chi, W_prime,generated_points,num_part] = cpf_RealPoint(num_part,next_num_part, chi_prev, q, gamma, estimated_cp,link,is_initialized,Meshes,triangles,f6,generated_points)
+function [chi,chi2, W_prime,generated_points] = cpf_RealPoint(num_part, chi_prev, q, gamma, estimated_cp,link,is_initialized,Meshes,triangles,f6,generated_points)
     Sigma = eye(7)*1;
     num_part_multiplicator=5;
     matrix = Meshes.Points(:,1:3,link);
     surface_points = matrix(matrix(:, 2, 1) ~= 0, :, :);
     
-    point_on_surface=estimated_cp(1:3);
+   % point_on_surface=estimated_cp(1:3);
     
     hold off
     
@@ -40,10 +40,16 @@ function [chi, W_prime,generated_points,num_part] = cpf_RealPoint(num_part,next_
             for i=1:num_part
                     
                     closest_point = estimated_cp(1:3) +  normrnd(0, 0.5,3,1)*0.05;
-                    generated_points(:,i) = (closest_point_to_triangle(triangles, closest_point'))';
+                    if isempty( closest_point_to_triangle(triangles, closest_point'))
+                            generated_points(:,i)=triangles(:,1,33);
+                    else
+                        generated_points(:,i) = (closest_point_to_triangle(triangles, closest_point'))';
+                    end
+                    
             end
         
              chi(:,:) = generated_points;
+              chi2(:,:) = generated_points;
       
             scatter3(generated_points(:,1),generated_points(:,2),generated_points(:,3),'b', 'filled' ,'SizeData', 20);
        
@@ -86,7 +92,7 @@ function [chi, W_prime,generated_points,num_part] = cpf_RealPoint(num_part,next_
                     %disp( vpa((exp(-0.5*fval))',3))
                     hold on
 
-                    plot(norm([-0.0438, -0.106, -0.048]-Particles(:,num_part_multiplicator*(i-1)+j)'),(exp(-0.5*fval))','--rs','LineWidth',2,'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',10)
+                    %plot(norm([0.0227, 0.0537, -0.051]-Particles(:,num_part_multiplicator*(i-1)+j)'),(exp(-0.5*fval))','--rs','LineWidth',2,'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',10)
                      W_prime = W;
             end
              
@@ -94,26 +100,19 @@ function [chi, W_prime,generated_points,num_part] = cpf_RealPoint(num_part,next_
         figure(f6);
         %scatter3(Particles(1,:),Particles(2,:),Particles(3,:))
         hold on
-        selected_indices=[];
-    for i = 1:size(Particles, 2)
-        column = Particles(:, i);
-        if ~all(column == [0; 0; 0])
-            selected_indices = [selected_indices, i];
-        end
-    end
-     Particles_processed = Particles(:, selected_indices);
+
      W = W./sum(W); % normalization 
-     W_processed = W(:, ceil(selected_indices / 3));
-     new_indeces=resample(next_num_part, W_processed,size(Particles_processed,2)); %resampling
-     chi = Particles_processed(:, new_indeces);          %maintain the best particles
-     
+     new_indeces2=resample(num_part, W,num_part); %resampling
+    new_indeces=resample2(num_part, W); %resampling
+      chi = Particles(:, new_indeces);%maintain the best particles
+     chi2 = Particles(:, new_indeces2);
      
 
     end
                % scatter3(surface_points(:,1),surface_points(:,2),surface_points(:,3),'r', 'filled' ,'SizeData', 10);
             hold on
             %scatter3(point_on_surface(1),point_on_surface(2),point_on_surface(3),'g', 'filled' ,'SizeData', 40);
-            num_part=next_num_part;
+            
             
             disp('size particles')
             size(chi,2)

@@ -59,9 +59,9 @@
        matrix(1:sizePoints(link),1:4,7) = points';
        
        
-       Meshes.Points=matrix(1:max(sizePoints),:,:);
+      M=matrix(1:max(sizePoints),:,:);
+       Meshes.Points=double(M);
        Meshes.ConnectivityList=meshes.ConnectivityList;
-       
         
 
 

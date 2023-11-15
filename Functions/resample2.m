@@ -7,7 +7,7 @@ function new_indeces = resample2(num_particles, weights)
     new_indeces = zeros(1,num_particles);
     
     for i=1:num_particles
-        new_indeces(i) = find(cumulative_sum>= (i), 1);
+        new_indeces(i) = find(cumulative_sum>=rand_indexs(i), 1);
     end
 
 end

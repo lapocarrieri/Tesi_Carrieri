@@ -1,17 +1,10 @@
 function [J] = ComputePoint_withWrenches(qq,link)
         %example of its use is: J=ComputePoint_withWrenches([2*pi 0 pi/3 pi/8 -pi/3 0 pi/4],2)
     syms q1 q2 q3 q4 q5 q6 q7
-    syms t
-    syms Q(t) Q1(t) Q2(t) Q3(t) Q4(t) Q5(t) Q6(t) Q7(t)
 
-    syms p_x p_y p_z 
-    syms fx fy fz w_x w_y w_z
-q = [q1;q2;q3;q4;q5;q6;q7];
 J = zeros(6,7);
 JJw=zeros(3,link);
-Jsubs= zeros(4,7);
 A = cell(1, link);
-invA_numeric = cell(1, link);
 C1=cos(q1);
 S1=sin(q1);
 C2=cos(q2);
