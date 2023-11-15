@@ -30,11 +30,10 @@ MaxVelocity=100;
 ExternalForceApplied=[1 2 3]'; 
 ExternalForceAppliedActualFrame=[3 4 3]';
 point = [0.01;-0.04;0.02;1];  
-      pointZ=-0.03;
+      pointZ=-0.07;
     theta=pi/3; 
 gain = 1000*diag([100, 60, 160, 200, 120, 80, 125]); %gain for the residual calculation
 link=7; % real link subjected to the force 
-
 radius=0.05; % radius of the circle that the End Effector(EE) of the robot must follow
 DeltaT = 0.001; % sampling time of the robot
 %q0(1:7)=[0,0,pi/2,0,0,0,0]; % q initialized, the real q initialized is in
@@ -44,7 +43,7 @@ frequency = 1; %frequency*time is the angle of the point of the circle
 % follow
 threshold_Collision = 0.002; % threshold in order to calculate the residuals, if <0.1 the link is influenced by an external force
 threshold_sigma= 0.014; % threshold for the sigma calculated
-samples=20; % samples to calculate the residual, in the other projects I think more than 300 samples are used 
+samples=10; % samples to calculate the residual, in the other projects I think more than 300 samples are used 
 % but it depends by the sampling time, since the residual calculation start
 % after samples instant
 
@@ -62,7 +61,7 @@ Residual_calculated=zeros(100,7);
 
 S=zeros(7,7);
 S_fext =[0 -ExternalForceAppliedActualFrame(3) ExternalForceAppliedActualFrame(2) ; ExternalForceAppliedActualFrame(3) 0 -ExternalForceAppliedActualFrame(1) ; -ExternalForceAppliedActualFrame(2) ExternalForceAppliedActualFrame(1) 0 ];
-m=-S_fext*point(1:3);
+m=-S_fext*point(1:3)
 double T;
 link_collided=zeros(1,1000);
 NumberNonCollidedSamples=0;
@@ -121,9 +120,9 @@ f5=figure;
   %% cylinder
 
   
-  radii = 0.045;           % radii of cyl
+  radii = 0.05;           % radii of cyl
     cnt = [0, 0,0];       % [x,y,z] center cyl
-    height = -0.05;      % height of cyl, is negative because the frame is on the top 
+    height = -0.1;      % height of cyl, is negative because the frame is on the top 
 
     [X,Y,Z] = cylinder(radii);
     X = X + cnt(1) ;
@@ -461,7 +460,7 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
         %R = NoncausalButterworthFilter(R);
         %% Point estimation - initialization of the contact particle filter
         r=R(end,:);
-        %errorTorque=abs(R(end,:)-TauExternalForce)
+        errorTorque=abs(R(end,:)-TauExternalForce)
         Residual_calculated(index,:)=R(end,:);
         Sigma_calculated(index)=Sigma(end);
         %figure(f4),plotTorque(TauExtForce,Residual_calculated,index, 3,DeltaT)
@@ -483,68 +482,35 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
         %LINKK=link_collided(index)
 
         if is_collided(index) == 1
-                %J_withwrenches = ComputePoint_withWrenches(Q_sampled(index,:),link_collided(index));
-                J_withwrenches = ComputePoint_withWrenches(Q_sampled(index,:),link);
 
-                wrenches=pinv(J_withwrenches')*R(end,:)';
-                %ExternalForce_Real =(pinv(transpose(J_force))*Tau_residual')'
-        
-                f_i=wrenches(1:3);
-                m_i=wrenches(4:6);
-                f_ext=f_i;
-          
-                
-              Sf_i=[0 -f_i(3) f_i(2) ; f_i(3) 0 -f_i(1) ; -f_i(2) f_i(1) 0 ];
-%                 radii = 0.05;   
-%                  x = radii*cos(pi/3)+ cnt(1);
-%                  y = radii*sin(pi/5) +  cnt(2);
-%                  z=height;
-%                  p_dc=[x, y,z]'
-
-
-                p_dc=Sf_i*m_i/(norm(f_i))^2;
-               
-               % p_dc=pinv(-Sf_i)*m_i
-                
-                Lambda_coefficient=f_i/(norm(f_i))^2;
-%                 H=([0;0;height]-cnt')/norm([0;0;height]-cnt);
-%                 w=p_dc-cnt';
-%                  
-%                 A=Lambda_coefficient'*Lambda_coefficient-(Lambda_coefficient'*H)^2;
-%                 B=2*((Lambda_coefficient'*w)-(Lambda_coefficient'*H)*(w'*H));
-%                 C=(w'*w)-(w'*H)^2-radii.^2;
-%                 lambdas = roots([A, B, C]);
-%                 PointOnTheCylinder(:,1)=p_dc+lambdas(1)*Lambda_coefficient;
-%                 PointOnTheCylinder(:,2)=p_dc+lambdas(2)*Lambda_coefficient;
-%                 if PointOnTheCylinder(3,1) >height && PointOnTheCylinder(3,1)<0
-%                     PointRetrieved=PointOnTheCylinder(:,1);
-%                     
-%                 elseif PointOnTheCylinder(3,2)>height && PointOnTheCylinder(3,2)<0
-%                     PointRetrieved=PointOnTheCylinder(:,2);
-%                     
-%                 end
-                [p1,p2]=compueIntersaction(Lambda_coefficient, p_dc)
-                if p1(3) >height && p1(3)<0
-                        PointRetrievedWithFunction=p1;
-                        
-                    elseif p2(3)>height && p2(3)<0
-                        PointRetrievedWithFunction=p2;
-                        
+                X = ComputePoint_fromTau(Q_sampled(index,:),R(end,:),link_collided(index))
+                return;
+              f_i
+              p_dc
+                Lambda_coefficient=f_i/norm(f_i);
+                H=([0;0;height]-cnt')/norm(p_dc-cnt);
+                w=p_dc-cnt';
+                %p_dc=pinv(-Sf_i)*m_i   
+                A=Lambda_coefficient'*Lambda_coefficient-(Lambda_coefficient'*H)^2;
+                B=2*((Lambda_coefficient'*w)-(Lambda_coefficient'*H));
+                C=(w'*w)-(w'*H)^2-radii.^2;
+                lambdas = roots([A, B, C]);
+                PointOnTheCylinder(:,1)=p_dc+lambdas(1)*Lambda_coefficient;
+                PointOnTheCylinder(:,2)=p_dc+lambdas(2)*Lambda_coefficient;
+                if PointOnTheCylinder(3,1) >height && PointOnTheCylinder(3,1)<0
+                    PointRetrieved=PointOnTheCylinder(:,1);
+                elseif PointOnTheCylinder(3,2) >height && PointOnTheCylinder(3,2)<0
+                    PointRetrieved=PointOnTheCylinder(:,2);
                 end
-                
-%                      raggio1=  sqrt(PointRetrieved(1)^2+PointRetrieved(2)^2)
-%              raggio2=  sqrt(PointRetrievedWithFunction(1)^2+PointRetrievedWithFunction(2)^2)
-%                 
-
-                %fprintf('the point calculated with the residuals is: %d\n',PointRetrieved)
+               
+                fprintf('the point calculated with the residuals is: %d\n',PointRetrieved)
 %                 m=-S_fext*PointOnTheCylinder1
 %                 m=-S_fext*PointOnTheCylinder2
                 
-%                
-%     
-%                 error_initialization=abs(point(1:3)-PointRetrieved)
-                error_initialization=abs(point(1:3)-PointRetrievedWithFunction)
-%                return;
+
+    
+                error_initialization=abs(point(1:3)-PointRetrieved)
+                return;
                 figure(f5);
                 plot3(point(1),point(2),point(3),'b');
                 hold on 

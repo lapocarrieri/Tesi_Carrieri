@@ -30,11 +30,10 @@ MaxVelocity=100;
 ExternalForceApplied=[1 2 3]'; 
 ExternalForceAppliedActualFrame=[3 4 3]';
 point = [0.01;-0.04;0.02;1];  
-      pointZ=-0.03;
+      pointZ=-0.07;
     theta=pi/3; 
 gain = 1000*diag([100, 60, 160, 200, 120, 80, 125]); %gain for the residual calculation
-link=7; % real link subjected to the force 
-
+link=3; % real link subjected to the force 
 radius=0.05; % radius of the circle that the End Effector(EE) of the robot must follow
 DeltaT = 0.001; % sampling time of the robot
 %q0(1:7)=[0,0,pi/2,0,0,0,0]; % q initialized, the real q initialized is in
@@ -121,9 +120,9 @@ f5=figure;
   %% cylinder
 
   
-  radii = 0.045;           % radii of cyl
+  radii = 0.05;           % radii of cyl
     cnt = [0, 0,0];       % [x,y,z] center cyl
-    height = -0.05;      % height of cyl, is negative because the frame is on the top 
+    height = -0.1;      % height of cyl, is negative because the frame is on the top 
 
     [X,Y,Z] = cylinder(radii);
     X = X + cnt(1) ;
@@ -152,7 +151,7 @@ f5=figure;
 %FinalOrientation = vpa(simplify(T(1:3,1:3)),3); % final orientation at
 %every time instant in order to add the final orientation
 % T_Q = QtoP(QQ(t),7);
-% diff(T,t);                                                                                                                                          cos(Q6(t))*(cos(Q2(t))*cos(Q4(t)) + cos(Q3(t))*sin(Q2(t))*sin(Q4(t))) + sin(Q6(t))*(cos(Q5(t))*(cos(Q2(t))*sin(Q4(t)) - 1.0*cos(Q3(t))*cos(Q4(t))*sin(Q2(t))) + sin(Q2(t))*sin(Q3(t))*sin(Q5(t)))
+% diff(T,t);cos(Q6(t))*(cos(Q2(t))*cos(Q4(t)) + cos(Q3(t))*sin(Q2(t))*sin(Q4(t))) + sin(Q6(t))*(cos(Q5(t))*(cos(Q2(t))*sin(Q4(t)) - 1.0*cos(Q3(t))*cos(Q4(t))*sin(Q2(t))) + sin(Q2(t))*sin(Q3(t))*sin(Q5(t)))
 % J5= jacobian(norm(-T_Q(1:3,3)),QQ(t));
  
 %% Now there is the matlab simulation of the movement
@@ -485,13 +484,98 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
         if is_collided(index) == 1
                 %J_withwrenches = ComputePoint_withWrenches(Q_sampled(index,:),link_collided(index));
                 J_withwrenches = ComputePoint_withWrenches(Q_sampled(index,:),link);
-
+                
                 wrenches=pinv(J_withwrenches')*R(end,:)';
+
+
+
                 %ExternalForce_Real =(pinv(transpose(J_force))*Tau_residual')'
         
                 f_i=wrenches(1:3);
                 m_i=wrenches(4:6);
-                f_ext=f_i;
+
+                error1 = [ExternalForceAppliedActualFrame;m]-wrenches
+               
+                % Calculate the SVD of matrix A
+                [U, S, V] = svd(J_withwrenches');
+                s = diag(S);
+                tol = max(size(J_withwrenches')) * eps(max(s));
+                r = sum(s > tol);
+                U_r = U(:, 1:r);
+                V_r = V(:, 1:r);
+                S_inv = diag(1./s(1:r));
+                wrenches2 = V_r * S_inv * U_r' * R(end,:)';
+               
+                error2 = [ExternalForceAppliedActualFrame;m]-wrenches2
+               % DLS method
+%                it=1;
+%                
+%                for lambda=0:0.001:100
+%                       % Damping parameter (you can adjust this value)
+%                     wrenches4 = (J_withwrenches*J_withwrenches' + lambda^2*eye(size(J_withwrenches', 2))) \ (J_withwrenches*R(end,:)');
+%                     
+%                     error4 = [ExternalForceAppliedActualFrame;m]-wrenches4;
+%                     normerror4(it)=norm(error4);
+%                     it=it+1;
+%                end
+%               plot(normerror4)
+                lambda = 0.1;
+               wrenches4 = (J_withwrenches*J_withwrenches' + lambda^2*eye(size(J_withwrenches', 2))) \ (J_withwrenches*R(end,:)');
+                    
+                    error4 = [ExternalForceAppliedActualFrame;m]-wrenches4;
+                    
+%                % weighted pseudoinverse
+%                it=1;
+%                 for gg=0.001:0.001:1
+%                    W = gg*diag(rand(6, 1));
+%                    J_withwrenchesweightedPseudoinverse=W^(-1/2)*pinv(J_withwrenches'*W^(-1/2));
+%                    wrenches3=J_withwrenchesweightedPseudoinverse*R(end,:)';
+%                    error3 = [ExternalForceAppliedActualFrame;m]-wrenches3;
+%                    normerror3(it)=norm(error3);
+%                    it=it+1;
+%                 end
+%                 for it=0:49
+%                     for a=1:19
+%                         normerror(it+1)=normerror3(it*20+1)+normerror3(it*20+a+1);
+%                     end
+%                 end
+                    W = 300*0.001*diag(rand(6, 1));
+                   J_withwrenchesweightedPseudoinverse=W^(-1/2)*pinv(J_withwrenches'*W^(-1/2));
+                   wrenches3=J_withwrenchesweightedPseudoinverse*R(end,:)';
+                    error3 = [ExternalForceAppliedActualFrame;m]-wrenches3;
+                
+%                 % quadratic programming method
+%                 % Define the matrices A and C, and vectors b and D
+%                 A = [1, 2, 3; 4, 5, 6; 7, 8, 9];
+%                 b = [1; 2; 3];
+%                 C = [1, 0, 0; 0, 1, 0];
+%                 D = [3; 4];
+%                 
+%                 % Solve the quadratic programming problem
+%                 x = quadprog(A' * A, -A' * b, C, -D);
+%                 
+%                 % Display the solution
+%                 disp('Solution:')
+%                 disp(x); 
+
+
+               % null-space method
+               norm(error1)
+               norm(error2)
+               norm(error3)
+               norm(error4) 
+               return;
+               % Linear-Quadratic Optimization
+               % non so come usarla
+               % prova col quadratic programming usando inequality
+               % costraints.
+
+
+
+            
+%% now intersect the line of points that generate the torque m with a cylinder posed
+% in the center of the reference fram, this is a simplified version since
+% the real link is not cylindrical
           
                 
               Sf_i=[0 -f_i(3) f_i(2) ; f_i(3) 0 -f_i(1) ; -f_i(2) f_i(1) 0 ];
@@ -501,50 +585,39 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 %                  z=height;
 %                  p_dc=[x, y,z]'
 
-
-                p_dc=Sf_i*m_i/(norm(f_i))^2;
+                radii=0.01;
+                p_dc=Sf_i*m_i/(norm(f_i))^2
+                p_dc=[0;0.05;-0.05];
                
                % p_dc=pinv(-Sf_i)*m_i
                 
                 Lambda_coefficient=f_i/(norm(f_i))^2;
-%                 H=([0;0;height]-cnt')/norm([0;0;height]-cnt);
-%                 w=p_dc-cnt';
-%                  
-%                 A=Lambda_coefficient'*Lambda_coefficient-(Lambda_coefficient'*H)^2;
-%                 B=2*((Lambda_coefficient'*w)-(Lambda_coefficient'*H)*(w'*H));
-%                 C=(w'*w)-(w'*H)^2-radii.^2;
-%                 lambdas = roots([A, B, C]);
-%                 PointOnTheCylinder(:,1)=p_dc+lambdas(1)*Lambda_coefficient;
-%                 PointOnTheCylinder(:,2)=p_dc+lambdas(2)*Lambda_coefficient;
-%                 if PointOnTheCylinder(3,1) >height && PointOnTheCylinder(3,1)<0
-%                     PointRetrieved=PointOnTheCylinder(:,1);
-%                     
-%                 elseif PointOnTheCylinder(3,2)>height && PointOnTheCylinder(3,2)<0
-%                     PointRetrieved=PointOnTheCylinder(:,2);
-%                     
-%                 end
-                [p1,p2]=compueIntersaction(Lambda_coefficient, p_dc)
-                if p1(3) >height && p1(3)<0
-                        PointRetrievedWithFunction=p1;
-                        
-                    elseif p2(3)>height && p2(3)<0
-                        PointRetrievedWithFunction=p2;
-                        
+                H=([0;0;height]-cnt')/norm(p_dc-cnt);
+                w=p_dc-cnt';
+                p_dc(3)'*p_dc(3)
+            (p_dc(1:2)'*p_dc(1:2))-(p_dc'*H)^2
+            radii.^2
+                A=Lambda_coefficient'*Lambda_coefficient-(Lambda_coefficient'*H)^2;
+                B=2*((Lambda_coefficient'*w)-(Lambda_coefficient'*H));
+                C=(w'*w)-(w'*H)^2-radii.^2;
+                lambdas = roots([A, B, C]);
+                PointOnTheCylinder(:,1)=p_dc+lambdas(1)*Lambda_coefficient;
+                PointOnTheCylinder(:,2)=p_dc+lambdas(2)*Lambda_coefficient;
+                if PointOnTheCylinder(3,1) >height && PointOnTheCylinder(3,1)<0
+                    PointRetrieved=PointOnTheCylinder(:,1);
+                elseif PointOnTheCylinder(3,2)>height && PointOnTheCylinder(3,2)<0
+                    PointRetrieved=PointOnTheCylinder(:,2);
                 end
-                
-%                      raggio1=  sqrt(PointRetrieved(1)^2+PointRetrieved(2)^2)
-%              raggio2=  sqrt(PointRetrievedWithFunction(1)^2+PointRetrievedWithFunction(2)^2)
-%                 
-
+             raggio=  sqrt(PointRetrieved(1)^2+PointRetrieved(2)^2)
                 %fprintf('the point calculated with the residuals is: %d\n',PointRetrieved)
 %                 m=-S_fext*PointOnTheCylinder1
 %                 m=-S_fext*PointOnTheCylinder2
+
                 
-%                
-%     
-%                 error_initialization=abs(point(1:3)-PointRetrieved)
-                error_initialization=abs(point(1:3)-PointRetrievedWithFunction)
-%                return;
+
+    
+                error_initialization=abs(point(1:3)-PointRetrieved)
+               
                 figure(f5);
                 plot3(point(1),point(2),point(3),'b');
                 hold on 
