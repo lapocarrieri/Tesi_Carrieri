@@ -50,7 +50,7 @@ MaxVelocity=100;
 % the reference frame of the link
 ExternalForceApplied=[1 2 3]'; 
 ExternalForceAppliedActualFrame=[2 4 3]';
-gain = 1000*diag([100, 60, 160, 200, 120, 80, 125]); %gain for the residual calculation
+gain = 10*diag([100, 60, 160, 200, 120, 80, 125]); %gain for the residual calculation
  % real link subjected to the force 
 radius=0.05; % radius of the circle that the End Effector(EE) of the robot must follow
 DeltaT = 0.001; % sampling time of the robot
@@ -72,7 +72,7 @@ samples=100; % samples to calculate the residual, in the other projects I think 
     
     q0=[0 0 0 0 0 0 0 0 0 0 0 0 0 0]; %initial configuration of the robot
     PlotMeshRobot; % plot of all the meshes that represent the manipulator
-    link=6;
+    link=7;
 random_index = randi([1, 556]);
 random_vector = Meshes.Points(random_index, :,link);
 
@@ -190,7 +190,7 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
      disp(t0);
      
      if index>99
-         save('initialization16')
+         save('initialization07')
          return;
       end
 %     %figure(f1);

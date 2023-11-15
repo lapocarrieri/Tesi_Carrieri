@@ -15,7 +15,25 @@
 clc;
 close all;
 clear all;
+ ss = 1;
+ Sigma=0;
+currentPool = gcp('nocreate'); % Get the current pool, if it exists
 
+if isempty(currentPool)
+    % No pool is active, so create a new one
+    pool = parpool(2); % Create a pool with 2 workers
+
+    % Your parallel code here
+    
+    % Delete the pool when you're done with it
+    
+else
+    % A pool is already active, display a message
+    disp('A parallel pool is already active. Skipping pool creation.');
+end
+n=10000;
+time=zeros(n,1);
+firstTime=true;
    addpath 'Dynamics'
 
    addpath 'Functions'
@@ -23,7 +41,8 @@ clear all;
 %% Hyperparameters to be set
 
 %% Now there is the matlab simulation of the movement
-load('Initialization\initialization45.mat')
+load('Initialization\initialization05.mat')
+tf=0.5;
 disp('The point in the actual frame is:')
 disp(vpa(point',3));
     close all
@@ -55,6 +74,7 @@ f6=figure;
             title('3D Point Cloud');
             grid on;
             CalculatedPoint=[0 0 0];
+             save('sharedVar2','CalculatedPoint');
             gainE=100;
             GainInv=inv(eye(7)+gain*DeltaT) * gain ;
             GainEInv=inv(eye(1)+gainE*DeltaT) * gainE ;
@@ -112,7 +132,7 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 
     [~,S,~] = svd(J);
     
-    sigma = min(diag(S));
+    sigma_trajectory = min(diag(S));
     
     dp = J * q0(8:14)';
     
@@ -277,7 +297,7 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
         g_sampled{index}=(g);
         h_sampled{index}=(S'*q0(8:14)'-g);
        
-        
+        samples=50;
        
     
     %% Residual Calculation and Force and point reconstruction
@@ -330,37 +350,39 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
         
         %R = NoncausalButterworthFilter(R);
                 %% Sliding Mode Observer SOSM
+%discrete-time observer
+             S1=80; T1=sqrt(S1);
 
-             S1=20; T1=8.9;
-
-
-            for tt = 1:samples+1
             
-            t=index-samples+tt-1;
-            p=B_sampled{t}*QD_sampled(t, :)';
-                if tt == 1
+            
+            p=B_sampled{index-1}*QD_sampled(index-1, :)';
+                if ss == 1
                    
                    p_hat = p;
                   
-                   sigma = zeros(7,1);
-                   dsigma= zeros(7,1);
+                   Sigma = zeros(7,1);
+                   Dsigma= zeros(7,1);
+                   ss=2;
                    
                 else
                     p=p_hat-p;
                    signP=tanh(p*50);
                    dp_hat=TAU_sampled(t,:)'+S_sampled{t}'*QD_sampled(t,:)'-g_sampled{t}+sigma-T1*signP;
-                   dsigma=dsigma-S1*signP;
+                   Dsigma=Dsigma-S1*signP;
                    p_hat=p_hat+DeltaT*dp_hat;
-                   sigma=sigma+DeltaT*dsigma;
+                   Sigma=Sigma+DeltaT*Dsigma;
                     
                end
-            end
-            ExternalTauCalculatedSOSM=sigma;
+           
+            ExternalTauCalculatedSOSM=Sigma;
             
         %% Sliding Mode Observer SOSML
 
-             S1=20; T1=8.9;
-             S2=64; T2=16;
+%              S1=20; T1=8.9;
+%              S2=64; T2=16;
+             S1=80; T1=sqrt(S1);
+             S2=116 ; T2=sqrt(S2)*2;
+
 
 
             for tt = 1:samples+1
@@ -399,28 +421,33 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
                    
                    p0 = 1/2*QD_sampled(t, :)*B_sampled{t}*QD_sampled(t, :)';
                    sumSigma=0;
-                   sigma = 0;
+                   sigma0 = 0;
                else
-                   sigma =  GainEInv*((1/2*QD_sampled(t, :)*B_sampled{t}*QD_sampled(t, :)' - p0) - (sumEdot + sumSigma)*DeltaT);
+                   sigma0 =  GainEInv*((1/2*QD_sampled(t, :)*B_sampled{t}*QD_sampled(t, :)' - p0) - (sumEdot + sumSigma)*DeltaT);
                     
                    
-                   sumSigma = sumSigma + sigma;
+                   sumSigma = sumSigma + sigma0;
                end
         end
       
         
         %R = NoncausalButterworthFilter(R);
         %% Point estimation - initialization of the contact particle filter
-        r=r';
-        errorTorque=vpa(norm(R(end,:)-TauExternalForce),2)
+        
+        errorTorque=vpa(norm(r-TauExtForce(index,:)'),2)
         
         errorSlidingMode=vpa(norm(TauExtForce(index,:)'-ExternalTauCalculatedSOSM),2)
+        
         errorSlidingModeL=vpa(norm(TauExtForce(index,:)'-ExternalTauCalculatedSOSML),2)
         Residual_calculated(index,:)=r;
-        Sigma_calculated(index)=sigma;
-
+        ExternalTauSOSM_calculated(index,:)=ExternalTauCalculatedSOSM;
+        ExternalTauSOMSML_calculated(index,:)=ExternalTauCalculatedSOSML;
+        Sigma_calculated(index)=sigma0;
+        index = index + 1; 
+        time(index)=t0;
+        continue;
         %figure(f4),plotTorque(TauExtForce,Residual_calculated,index, 3,DeltaT)
-        [is_collided_sigma] = getLink_withSigma(sigma,threshold_sigma,QD_sampled(end, :));
+        [is_collided_sigma] = getLink_withSigma(sigma0,threshold_sigma,QD_sampled(end, :));
 
 
         [link_collided(index),is_collided_r] = getLink_withResidual(r,threshold_Collision);
@@ -641,102 +668,26 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
             % Add a text label
             hold on
                 figure(f6),text(point(1),point(2),point(3), 'Real Point', 'FontSize', 6, 'HorizontalAlignment', 'left');
-             
-           disp('CPF:')
-           is_initialized=false;
-           num_part=10;
-           Niterations=4;
-        for i=1:speed:Niterations
-            
-            %disp(i+'-th iteration for the CPF');
-            %is_collided
-            % starting Niterations before the end the contact particle
-            % filter is iterated Niterations times until the last index.
-            % this is done at every time instant so if the number of
-            % iterations is high the code is very slow 
-            figure(f6),scatter3(point(1),point(2),point(3),'h', 'filled' ,'SizeData', 50);
-            % Add a text label
-            hold on
-                figure(f6),text(point(1),point(2),point(3), 'Real Point', 'FontSize', 6, 'HorizontalAlignment', 'left');
-             
-       
-           
-           
-           
-
-            %% plot the cylinder
-            %here the cylinder representing the link collided is
-            %represented in a 3D plane
-            %transformation of both the circumference upper and lower using
-            %R*p+t
-                    
-                    if link_collided(index) == 0
-                        
-                        continue;
-                        
-                    end
-
-            
-          
-
-        
-
-        
-            % estimated_contat_point_prime is the point calculated in the initialization phase
-            % in respect of the world frame
-
-            
-            
-            %% CPF
-            % here the code for the particle filter starts, the CPF is in
-            % the cpf function and takes in input the joints angle, the
-            % residuals and the point initialized
-            % In particular:
-            % num_part: numeber of particles
-            % chi_prev: particle at the previous step
-            % q: joint angles
-            % gamma: estimated external torque
-            % estimated_cp: estimated contact point with the deterministic method used in
-            %                the initialization phase
-            % (chi are the particles in respect to the actual frame)
-     
-            generated_points=zeros(3,num_part);
-            
-            [chi,chi2, W_prime,generated_points] = cpf_RealPoint(num_part, chi, Q_sampled(index,:), Residual_calculated(index,:), Point_intersectedActualFrame,link_collided(index),is_initialized,Meshes,triangles,f6,generated_points);
-            hold on
-            
-            
-            is_initialized=true;
-
-            figure(f6),scatter3(chi(1,:),chi(2,:),chi(3,:),'y', 'filled' ,'SizeData', 50);
-            hold off
-            disp('ecco:')
-             CalculatedPoint=computeBari(chi);
-             CalculatedPoint2=computeBari(chi2);
-             
-             %ErrorAfterCPF(:,ind)
-
-             ErrorAfterCPF1(:,ind)=norm(CalculatedPoint(1:3)'-point);
-             ErrorAfterCPF2(:,ind)=norm(CalculatedPoint2(1:3)'-point);
-             
-            
-            
-           hold on
-             
-            
-            
-             
-             ind=ind+1;
+                save('sharedData.mat', 'point', 'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','f6');
+               if firstTime
+                   parfeval( @CPF_script, 1); % 0 means no output needed
+                   disp('poolattivato')
+                   firstTime=false;
+               end
+                
+                
+                load('sharedVar2')
+                
              contact_point_PF = Rotation*CalculatedPoint'+tran;
              disp('error Contact point calculated after CPF:')
              disp(vpa(norm(RealPointIntersectedWorldFrame(1:3)-contact_point_PF),4))
              figure(f6),scatter3(CalculatedPoint(1),CalculatedPoint(2),CalculatedPoint(3),'p', 'filled' ,'SizeData', 50);
             % Add a text label
-            textname="CalculatedPoint "+i+"-th iteration";
+            textname="CalculatedPoint 5-th iteration";
                 figure(f6),text(CalculatedPoint(1),CalculatedPoint(2),CalculatedPoint(3), textname, 'FontSize', 6, 'HorizontalAlignment', 'left');
              %disp(vpa(contact_point_PF',4))
              
-             ErrorAfterCPFWorldFrame(:,ind)=abs(RealPointIntersectedWorldFrame(1:3)-contact_point_PF);
+         %    ErrorAfterCPFWorldFrame(:)=abs(RealPointIntersectedWorldFrame(1:3)-contact_point_PF);
 
                % disp(vpa(abs(RealPointIntersectedWorldFrame(1:3)-contact_point_PF),4))
              %[fval(end+1)] = observationModel(eye(7), Q_sampled(i,:),Residual_calculated(i,:),[ForcePointApplication(i,:); 1]',link_collided(i));
@@ -746,10 +697,9 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
             
 
         %    drawnow() 
+    
 
-
-
-        end
+        
         %disp('Error After CPF World Frame:')
         %disp(vpa(ErrorAfterCPFWorldFrame,2));
       %  figure(f5),plot(1:size(ErrorAfterCPF,2),norm(ErrorAfterCPF));
@@ -776,15 +726,34 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 %          hold off
      end
 index = index + 1; 
-
+time(index)=t0;
 
 
 
 %% Collaboration
     
 end
- save(filename)
- save('Residuals_calculatedlink7','Residual_calculated')
+%Residual_calculated
+%ExternalTauSOSM_calculated
+%ExternalTauSOSML_calculated
+%TauExtForce
+samples2=samples;
+figure()
+plot(time(samples2:index), TauExtForce(samples2:index,:)', 'r', 'LineWidth', 2);
+hold on;
+plot(time(samples2+1:index-1), Residual_calculated(samples2+1:index-1,:), 'g', 'LineWidth', 2);
+hold off
+figure()
+plot(time(samples2:index), TauExtForce(samples2:index,:)', 'r', 'LineWidth', 2);
+hold on;
+plot(time(samples2+1:index-1), ExternalTauSOSM_calculated(samples2+1:index-1,:), 'g', 'LineWidth', 2);
+hold off
+figure()
+plot(time(samples2:index), TauExtForce(samples2:index,:)', 'r', 'LineWidth', 2);
+hold on;
+plot(time(samples2+1:index-1), ExternalTauSOMSML_calculated(samples2+1:index-1,:), 'g', 'LineWidth', 2);
+hold off
+
 return;
  robot_plot;
  
