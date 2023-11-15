@@ -114,32 +114,31 @@ Jtranspose_link=zeros(7,3);
 nk=0;
 tic
 theta=pi/3; 
-point=[1;2;3;1]
 ExternalForceApplied=[0 0 0]';
-while (toc<3600)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
+while (toc<16000)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
      disp(t0);  
      ExternalForceApplied=ExternalForceApplied+[0.01 0.02 0.03]';
     link=5;
-    if toc<200
+    if toc<2000
             link=2;
     end
-    if (toc>200 && toc<400)
+    if (toc>2000 && toc<4000)
  
             link=3;
      end
-    if (toc>400 && toc<600)
+    if (toc>4000 && toc<6000)
         
             link=4;
-       end
-    if (toc>600 && toc<800)
+    end
+    if (toc>6000 && toc<8000)
         
             link=5;
     end
-    if (toc>800 && toc<1200)
+    if (toc>8000 && toc<12000)
         
             link=6;
     end
-    if (toc>1200 && toc<1600)
+    if (toc>12000 && toc<16000)
         
             link=7;
     end

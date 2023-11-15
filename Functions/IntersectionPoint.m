@@ -1,4 +1,4 @@
-function [Point_intersected] = IntersectionPoint(line,link,qq,PreviousPoint,matrix,f3)
+function [Point_intersected] = IntersectionPoint(line,link,PreviousPoint,matrix,f3,T)
         addpath 'Functions'
         
         t = linspace(-0.2,0.2, 200);
@@ -13,7 +13,6 @@ function [Point_intersected] = IntersectionPoint(line,link,qq,PreviousPoint,matr
        %figure(f3),plot3(line.origin(1),line.origin(2),line.origin(3), 'o', 'MarkerSize', 2, 'MarkerFaceColor', 'g', 'LineWidth', 2);
               
         
-        T=QtoP(qq,link);
         
         figure(f3),plotRF(T(1:3,1:3), T(1:3,4));
         Vertices.Points=double((T*matrix.Points(:,:,link)')');

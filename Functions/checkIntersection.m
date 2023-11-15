@@ -5,8 +5,10 @@ function [Point_intersected] = checkIntersection(vertices, line,PreviousPoint)
 %     line.origin=[0.2 0.2 -1]
 %     line.direction=[ 0.01 0.01 1];
 %     checkIntersection(vertices, line)
+   % size_vertices=size(vertices.ConnectivityList, 1);
+    size_vertices=1098;
     intersection1=false;
-    distance=2;
+    distance=0.1;
     Point_intersected=[];
     % Line origin and direction
     origin = line.origin;
@@ -33,7 +35,9 @@ function [Point_intersected] = checkIntersection(vertices, line,PreviousPoint)
         indices = vertices.ConnectivityList(i, :);
         p1 = vertices.Points(indices(1), 1:3);
         if PreviousPoint~=[0 0 0]
-                if  norm(PreviousPoint-p1)>distance 
+            norm1=norm(PreviousPoint-p1);
+            
+                if  norm1>distance
                     
                     continue;
                 end
@@ -94,16 +98,18 @@ function [Point_intersected] = checkIntersection(vertices, line,PreviousPoint)
     if t > epsilon
         intersection1 = true; % Line intersects the triangle
         
-        Point_intersected = origin' + t * direction % Calculate intersection point
+        Point_intersected = origin + t * direction; % Calculate intersection point
         
         
 %         disp(indices)
 %         disp(vpa(triangle,2))
         
         %plot3(triangle(:,1),triangle(:,2),triangle(:,3))
-        
-        break;
+        disp('size vertices')
+        VerticesNonConsidered=size_vertices-size(vertices.ConnectivityList, 1)
 
+        break;
+        
     end
 
     

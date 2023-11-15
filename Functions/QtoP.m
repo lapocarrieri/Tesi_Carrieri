@@ -47,6 +47,6 @@ function [B] = QtoP(qq,link)
 
 
     end
-    B=A{link};
+    B=double(A{link});
     
 end

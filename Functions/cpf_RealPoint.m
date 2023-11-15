@@ -13,7 +13,7 @@ function [chi,chi2, W_prime,generated_points] = cpf_RealPoint(num_part, chi_prev
    % point_on_surface=estimated_cp(1:3);
     
     hold off
-    
+    disp('cpf')
     
     
     

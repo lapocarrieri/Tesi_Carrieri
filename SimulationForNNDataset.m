@@ -130,7 +130,7 @@ end
 
 
 S_fext =[0 -ExternalForceAppliedActualFrame(3) ExternalForceAppliedActualFrame(2) ; ExternalForceAppliedActualFrame(3) 0 -ExternalForceAppliedActualFrame(1) ; -ExternalForceAppliedActualFrame(2) ExternalForceAppliedActualFrame(1) 0 ];
-    link=5;
+    link=1;
 Pointslink = Meshes.Points(:, :,link);
     surface_points = Pointslink(Pointslink(:, 2, 1) ~= 0, :, :);
     LastPoint=size(surface_points,1);
@@ -147,7 +147,7 @@ Pointslink = Meshes.Points(:, :,link);
          d2p_ff(:,1) =[0 0 0]';
 close all
 tic
-while (toc<2000)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
+while (toc<200000)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
      disp(t0);  
    if mod(t0, 0.1) == 0
        indecs=indecs+1;
@@ -162,10 +162,13 @@ while (toc<2000)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
      S_fext =[0 -ExternalForceAppliedActualFrame(3) ExternalForceAppliedActualFrame(2) ; ExternalForceAppliedActualFrame(3) 0 -ExternalForceAppliedActualFrame(1) ; -ExternalForceAppliedActualFrame(2) ExternalForceAppliedActualFrame(1) 0 ];
  
    end
+   if mod(t0, 10) == 0
+     link = link+1;
+   end
     
     
     %% TRAJ (CIRCLE)
-        ranges=10*[1000 800 600 400 200 100 50];
+        ranges=10*[997 767 581 393 205 120 50];
 
 
         for i = 1:7
@@ -458,7 +461,7 @@ index = index + 1;
 
     
 end
- save('PseudoinverseNN','Residual_calculated','link_calculated','point_calculated','Js' ,'moments')
+ save('PseudoinverseNN2','Residual_calculated','link_calculated','point_calculated','Js' ,'moments')
 
 
  

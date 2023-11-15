@@ -41,7 +41,7 @@ firstTime=true;
 %% Hyperparameters to be set
 
 %% Now there is the matlab simulation of the movement
-load('Initialization\initialization05.mat')
+load('Initialization\initialization04.mat')
 tf=0.5;
 disp('The point in the actual frame is:')
 disp(vpa(point',3));
@@ -79,11 +79,13 @@ f6=figure;
             GainInv=inv(eye(7)+gain*DeltaT) * gain ;
             GainEInv=inv(eye(1)+gainE*DeltaT) * gainE ;
 
-
+index=index-1;
         
 while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
      disp('time instant:')
      disp(t0);
+     index = index + 1; 
+     time(index)=t0;
      
 
 %     %figure(f1);
@@ -234,15 +236,14 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
  
        %external torque applied to the system
        
-       T_actualframe= QtoP(q0(1:7),link);
-       RealPointIntersectedWorldFrame=T_actualframe*[point;1];
-        J_actualframe=T_actualframe(1:3,1:3)'*J_force;
+       T= QtoP(q0(1:7),link);
+       RealPointIntersectedWorldFrame=T*[point;1];
+        J_actualframe=T(1:3,1:3)'*J_force;
         
 
       % TauExternalForce0 = vpa((transpose(J_actualframe) * ExternalForceAppliedActualFrame)',3)
        %TauExternalForce =(transpose(J_force)*ExternalForceApplied)';
        %%force in world frame
-       J_withwrenches = ComputePoint_withWrenches(q0(1:7),link);
        TauExternalForce=(J_withwrenches'*[ExternalForceAppliedActualFrame;m])';
        %return;
        
@@ -302,6 +303,7 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
     
     %% Residual Calculation and Force and point reconstruction
     if index>samples % in order to have enough samples to calculate the residuals
+        
         fprintf('Starting of the Residual calculation:\n')
             sumTau=0;
             sumH=0;
@@ -349,106 +351,17 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
      
         
         %R = NoncausalButterworthFilter(R);
-                %% Sliding Mode Observer SOSM
-%discrete-time observer
-             S1=80; T1=sqrt(S1);
-
+              
             
-            
-            p=B_sampled{index-1}*QD_sampled(index-1, :)';
-                if ss == 1
-                   
-                   p_hat = p;
-                  
-                   Sigma = zeros(7,1);
-                   Dsigma= zeros(7,1);
-                   ss=2;
-                   
-                else
-                    p=p_hat-p;
-                   signP=tanh(p*50);
-                   dp_hat=TAU_sampled(t,:)'+S_sampled{t}'*QD_sampled(t,:)'-g_sampled{t}+sigma-T1*signP;
-                   Dsigma=Dsigma-S1*signP;
-                   p_hat=p_hat+DeltaT*dp_hat;
-                   Sigma=Sigma+DeltaT*Dsigma;
-                    
-               end
-           
-            ExternalTauCalculatedSOSM=Sigma;
-            
-        %% Sliding Mode Observer SOSML
-
-%              S1=20; T1=8.9;
-%              S2=64; T2=16;
-             S1=80; T1=sqrt(S1);
-             S2=116 ; T2=sqrt(S2)*2;
-
-
-
-            for tt = 1:samples+1
-            
-            t=index-samples+tt-1;
-            p=B_sampled{t}*QD_sampled(t, :)';
-                if tt == 1
-                   
-                   p_hat = p;
-                  
-                   sigma = zeros(7,1);
-                   dsigma= zeros(7,1);
-                   
-                else
-                    p=p_hat-p;
-                   signP=tanh(p*50);
-                   dp_hat=TAU_sampled(t,:)'+S_sampled{t}'*QD_sampled(t,:)'-g_sampled{t}+sigma-T2*p-T1*signP;
-                   dsigma=dsigma-S1*signP-S2*p;
-                   p_hat=p_hat+DeltaT*dp_hat;
-                   sigma=sigma+DeltaT*dsigma;
-                    
-               end
-            end
-            ExternalTauCalculatedSOSML=sigma;
-            
-        %% Energy-based detection
-        for tt = 1:samples+1
-
-            t=index-samples+tt-1;
-
-            sumEdot = sumEdot + QD_sampled(t,:)*(TAU_sampled(t,:)'- g_sampled{t});
-           
-
-        
-               if tt == 1
-                   
-                   p0 = 1/2*QD_sampled(t, :)*B_sampled{t}*QD_sampled(t, :)';
-                   sumSigma=0;
-                   sigma0 = 0;
-               else
-                   sigma0 =  GainEInv*((1/2*QD_sampled(t, :)*B_sampled{t}*QD_sampled(t, :)' - p0) - (sumEdot + sumSigma)*DeltaT);
-                    
-                   
-                   sumSigma = sumSigma + sigma0;
-               end
-        end
-      
-        
-        %R = NoncausalButterworthFilter(R);
+     
         %% Point estimation - initialization of the contact particle filter
         
         errorTorque=vpa(norm(r-TauExtForce(index,:)'),2)
         
-        errorSlidingMode=vpa(norm(TauExtForce(index,:)'-ExternalTauCalculatedSOSM),2)
-        
-        errorSlidingModeL=vpa(norm(TauExtForce(index,:)'-ExternalTauCalculatedSOSML),2)
-        Residual_calculated(index,:)=r;
-        ExternalTauSOSM_calculated(index,:)=ExternalTauCalculatedSOSM;
-        ExternalTauSOMSML_calculated(index,:)=ExternalTauCalculatedSOSML;
-        Sigma_calculated(index)=sigma0;
-        index = index + 1; 
-        time(index)=t0;
-        continue;
-        %figure(f4),plotTorque(TauExtForce,Residual_calculated,index, 3,DeltaT)
-        [is_collided_sigma] = getLink_withSigma(sigma0,threshold_sigma,QD_sampled(end, :));
+       Residual_calculated(index,:)=r;
 
+        %figure(f4),plotTorque(TauExtForce,Residual_calculated,index, 3,DeltaT)
+      is_collided_sigma=1;
 
         [link_collided(index),is_collided_r] = getLink_withResidual(r,threshold_Collision);
   
@@ -468,22 +381,18 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
                 %J_withwrenches = ComputePoint_withWrenches(Q_sampled(index,:),link_collided(index));
                 J_withwrenches = ComputePoint_withWrenches(Q_sampled(index,:),link);
 
-                wrenches1=pinv(J_withwrenches')*R(end,:)';
-                %ExternalForce_Real =(pinv(transpose(J_force))*Tau_residual')'
-        
-
-                
-                                error1 = [ExternalForceAppliedActualFrame;m]-wrenches1;
+                wrenches1=pinv(J_withwrenches')*Residual_calculated(index,:)';
+                error1 = [ExternalForceAppliedActualFrame;m]-wrenches1;
                
                 % Calculate the SVD of matrix A
                 [U, S, V] = svd(J_withwrenches');
                 s = diag(S);
                 tol = max(size(J_withwrenches')) * eps(max(s));
-                r = sum(s > tol);
-                U_r = U(:, 1:r);
-                V_r = V(:, 1:r);
-                S_inv = diag(1./s(1:r));
-                wrenches2 = V_r * S_inv * U_r' * R(end,:)';
+                rr = sum(s > tol);
+                U_r = U(:, 1:rr);
+                V_r = V(:, 1:rr);
+                S_inv = diag(1./s(1:rr));
+                wrenches2 = V_r * S_inv * U_r' * Residual_calculated(index,:)';
                
                 error2 = [ExternalForceAppliedActualFrame;m]-wrenches2;
                % DLS method
@@ -499,37 +408,28 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 %                end
 %               plot(normerror4)
                 lambda = 0.1;
-               wrenches4 = (J_withwrenches*J_withwrenches' + lambda^2*eye(size(J_withwrenches', 2))) \ (J_withwrenches*R(end,:)');
+               wrenches3 = (J_withwrenches*J_withwrenches' + lambda^2*eye(size(J_withwrenches', 2))) \ (J_withwrenches*Residual_calculated(index,:)');
                     
-                    error4 = [ExternalForceAppliedActualFrame;m]-wrenches4;
-                    
-%                % weighted pseudoinverse
-%                it=1;
-%                 for gg=0.001:0.001:1
-%                    W = gg*diag(rand(6, 1));
-%                    J_withwrenchesweightedPseudoinverse=W^(-1/2)*pinv(J_withwrenches'*W^(-1/2));
-%                    wrenches3=J_withwrenchesweightedPseudoinverse*R(end,:)';
-%                    error3 = [ExternalForceAppliedActualFrame;m]-wrenches3;
-%                    normerror3(it)=norm(error3);
-%                    it=it+1;
-%                 end
-%                 for it=0:49
-%                     for a=1:19
-%                         normerror(it+1)=normerror3(it*20+1)+normerror3(it*20+a+1);
-%                     end
-%                 end
-                    W=eye(6);
-                   W(1,1)=60;
-                   W(2,2)=45;
-                   W(3,3)=44;
-                   W(4,4)=55;
-                   W(5,5)=52;
-                   W(6,6)=53;
+                    error3 = [ExternalForceAppliedActualFrame;m]-wrenches3;
+                    if firstTime
+                        Weightcalculated
+                    end
+%                     W=eye(6);
+%                    W(1,1)=60;
+%                    W(2,2)=45;
+%                    W(3,3)=44;
+%                    W(4,4)=55;
+%                    W(5,5)=52;
+%                    W(6,6)=53;
+                   J_withwrenches_transpose=J_withwrenches';
                    
-                J_withwrenchesweightedPseudoinverse=W^(-1/2)*pinv(J_withwrenches'*W^(-1/2));
-                       wrenches3=J_withwrenchesweightedPseudoinverse*R(end,:)';
-                        error3 = [ExternalForceAppliedActualFrame;m]-wrenches3;
-
+                   mu=0.01;
+                %J_withwrenchesweightedPseudoinverse3=inv(W)*J_withwrenches_transpose'*inv(J_withwrenches_transpose*inv(W)*J_withwrenches_transpose')
+                 J_withwrenchesweightedPseudoinverse4=inv(W_calculated)*J_withwrenches_transpose'*inv(J_withwrenches_transpose*inv(W_calculated)*J_withwrenches_transpose'+mu^2*eye(7));
+                       
+                wrenches4=J_withwrenchesweightedPseudoinverse4*Residual_calculated(index,:)';
+                error4 = [ExternalForceAppliedActualFrame;m]-wrenches4;
+                
 %                 % quadratic programming method
 %                 % Define the matrices A and C, and vectors b and D
 %                 A = [1, 2, 3; 4, 5, 6; 7, 8, 9];
@@ -544,29 +444,23 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 %                 disp('Solution:')
 %                 disp(x); 
             %PreviousPoint
-                %WeightCalculation;
-                %W=diag(weights)
-                
-                J_withwrenchesweightedPseudoinverse=W^(-1/2)*pinv(J_withwrenches'*W^(-1/2));
-                       wrenches5=J_withwrenchesweightedPseudoinverse*R(end,:)';
-                           
-                            
-                        error5 = [ExternalForceAppliedActualFrame;m]-wrenches5;
-                        norm(error5)
-               
-               % null-space method
-%                norm(error1)
-%                norm(error2)
-%                norm(error3)
-%                norm(error4) 
-%                norm(error5)
+                WeightCalculation;
+                W2=diag(weights);
+                J_withwrenchesweightedPseudoinverse5=inv(W2)*J_withwrenches_transpose'*inv(J_withwrenches_transpose*inv(W2)*J_withwrenches_transpose'+mu^2*eye(7));
+                wrenches5=J_withwrenchesweightedPseudoinverse5*Residual_calculated(index,:)';
+                error5 = [ExternalForceAppliedActualFrame;m]-wrenches5;
+               errors(index,1,:)=error1;
+               errors(index,2,:)=error2;
+               errors(index,3,:)=error3;
+               errors(index,4,:)=error4;
+               errors(index,5,:)=error5;
+
+                continue;       
+%% Point calculation through f and m
                
                %wrenches3=[ExternalForceAppliedActualFrame;m];
               f_i=wrenches5(1:3);
-                m_i=wrenches5(4:6);
-                
-               
-                
+               m_i=wrenches5(4:6);
                 Sf_i=[0 -f_i(3) f_i(2) ; f_i(3) 0 -f_i(1) ; -f_i(2) f_i(1) 0 ];
                 p_dc=Sf_i*m_i/(norm(f_i))^2;
 
@@ -575,34 +469,35 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 %                  y = radii*sin(pi/5) +  cnt(2);
 %                  z=height;
 %                  p_dc=[x, y,z]'
-
+            T= QtoP(Q_sampled(index,:),link);
+            Rotation = T(1:3,1:3);
+             tran = T(1:3,4);
 
                 
                
                % p_dc=pinv(-Sf_i)*m_i
               
-               T_actualframe= QtoP(q0(1:7),link);
+               
                 % T= QtoP(Q_sampled(end,:),link_collided(end));
                 
                 Lambda_coefficient=f_i/(norm(f_i))^2;
-                line.origin=T_actualframe*[p_dc;1];
-                line.origin=line.origin(1:3);
-                line.direction=T_actualframe*[Lambda_coefficient;1];
+                line.origin=T*[p_dc;1];
+                line.origin=double(line.origin(1:3));
+                line.direction=double(T*[Lambda_coefficient;1]);
                 line.direction=line.direction(1:3);
-                RealPointIntersected=double(T_actualframe*[point;1]);
-                disp(vpa(RealPointIntersectedWorldFrame,2))
+                RealPointIntersected=double(T*[point;1]);
+                %disp(vpa(RealPointIntersectedWorldFrame,2))
                 figure(f3),plot3( RealPointIntersected(1), RealPointIntersected(2),RealPointIntersected(3), 'o', 'MarkerSize', 4, 'MarkerFaceColor', 'r', 'LineWidth', 2);
                 hold on
-                %Point_intersected = IntersectionPoint(line,link,Q_sampled(index,:),RealPointIntersected(1:3),Meshes,f3);
-                Point_intersected=Point_intersected+[0.15,-0.1,0.07]
+                Point_intersected = IntersectionPoint(line,link,Point_intersected(1:3),Meshes,f3,T);
+                disp('Point_intersected')
                 if Point_intersected==[0 0 0]'
                     Point_intersected_actual_frame=closest_point_to_triangle(triangles, p_dc');
-                    Point_intersected=T_actualframe*[Point_intersected_actual_frame';1];
+                    Point_intersected=T*[Point_intersected_actual_frame';1];
                     disp('point initialiazation not optimal')
                 end
-                Point_intersected=(Point_intersected(1:3))';
+                Point_intersected=double(Point_intersected(1:3)');
             
-                disp(vpa(Point_intersected,2))
 
                 
 %                      raggio1=  sqrt(PointRetrieved(1)^2+PointRetrieved(2)^2)
@@ -617,14 +512,14 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 %                
 %     
 %                 error_initialization=abs(point(1:3)-PointRetrieved)
-                error_initialization=(vpa(norm(RealPointIntersected(1:3)-Point_intersected(1,:)'),3))
+                error_initialization=(vpa(norm(RealPointIntersected(1:3)-Point_intersected(1,:)'),3));
 
                 
                
-%                 ForcePoint=T_actualframe*[Point_intersected;1] ;%point in frame 0
+%                 ForcePoint=T*[Point_intersected;1] ;%point in frame 0
 %                 %ForcePointApplication(index,:)=ForcePoint(1:3);
 %                 
-%                 Force=T_actualframe*[f_ext;1]; %force in frame 0 
+%                 Force=T*[f_ext;1]; %force in frame 0 
         
 
                 NumberNonCollidedSamples=0;
@@ -654,11 +549,11 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
         
         ind=1;
         %is_initialized=false;
-                T= QtoP(Q_sampled(index,:),link);
-            Rotation = T(1:3,1:3);
-             tran = T(1:3,4);
 
-         Point_intersectedActualFrame=double(inv(T)*[Point_intersected;1]);
+         if size(Point_intersected,1)>1
+             Point_intersected=Point_intersected';
+         end
+         Point_intersectedActualFrame=double(inv(T)*[Point_intersected';1]);
         disp('Point_intersectedActualFrame:')
         disp(vpa(Point_intersectedActualFrame(1:3)',2))
            ErrorBeforeCPF_ActualFrame=abs(Point_intersectedActualFrame(1:3)-point);
@@ -668,8 +563,10 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
             % Add a text label
             hold on
                 figure(f6),text(point(1),point(2),point(3), 'Real Point', 'FontSize', 6, 'HorizontalAlignment', 'left');
-                save('sharedData.mat', 'point', 'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','f6');
-               if firstTime
+                if mod(t0,10)
+                    save('sharedData.mat', 'point', 'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','f6');
+                end
+                if firstTime
                    parfeval( @CPF_script, 1); % 0 means no output needed
                    disp('poolattivato')
                    firstTime=false;
@@ -677,14 +574,14 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
                 
                 
                 load('sharedVar2')
-                
+                CalculatedPoint=Point_intersected;
              contact_point_PF = Rotation*CalculatedPoint'+tran;
              disp('error Contact point calculated after CPF:')
              disp(vpa(norm(RealPointIntersectedWorldFrame(1:3)-contact_point_PF),4))
              figure(f6),scatter3(CalculatedPoint(1),CalculatedPoint(2),CalculatedPoint(3),'p', 'filled' ,'SizeData', 50);
             % Add a text label
             textname="CalculatedPoint 5-th iteration";
-                figure(f6),text(CalculatedPoint(1),CalculatedPoint(2),CalculatedPoint(3), textname, 'FontSize', 6, 'HorizontalAlignment', 'left');
+            figure(f6),text(CalculatedPoint(1),CalculatedPoint(2),CalculatedPoint(3), textname, 'FontSize', 6, 'HorizontalAlignment', 'left');
              %disp(vpa(contact_point_PF',4))
              
          %    ErrorAfterCPFWorldFrame(:)=abs(RealPointIntersectedWorldFrame(1:3)-contact_point_PF);
@@ -725,10 +622,9 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 %          figure(f2),plot3(real_point(1),real_point(2),real_point(3),'b');
 %          hold off
      end
-index = index + 1; 
-time(index)=t0;
 
 
+        
 
 %% Collaboration
     
@@ -743,16 +639,7 @@ plot(time(samples2:index), TauExtForce(samples2:index,:)', 'r', 'LineWidth', 2);
 hold on;
 plot(time(samples2+1:index-1), Residual_calculated(samples2+1:index-1,:), 'g', 'LineWidth', 2);
 hold off
-figure()
-plot(time(samples2:index), TauExtForce(samples2:index,:)', 'r', 'LineWidth', 2);
-hold on;
-plot(time(samples2+1:index-1), ExternalTauSOSM_calculated(samples2+1:index-1,:), 'g', 'LineWidth', 2);
-hold off
-figure()
-plot(time(samples2:index), TauExtForce(samples2:index,:)', 'r', 'LineWidth', 2);
-hold on;
-plot(time(samples2+1:index-1), ExternalTauSOMSML_calculated(samples2+1:index-1,:), 'g', 'LineWidth', 2);
-hold off
+plots;
 
 return;
  robot_plot;
