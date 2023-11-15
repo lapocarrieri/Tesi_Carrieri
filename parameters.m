@@ -1,5 +1,4 @@
-clear all;
-clc;
+
 
 %import lwr.* ;
 format long;
@@ -35,11 +34,9 @@ controller.DataFormat = 'row';
 
 
 %%
-addpath('./Kinematics/');
-t0=0.0;
-tf=10.0;
 
-DeltaT = 0.01;
+t0=0.0;
+
 
 Ts = DeltaT;
 
@@ -73,7 +70,6 @@ Xd = 0.6*[repmat(cos(Tsample),[1,6]),zeros(length(Tsample),1),repmat(-sin(Tsampl
 
 options_ode = odeset('RelTol',1e-10,'AbsTol',1e-12);
 options_opt = optimoptions('fmincon','Algorithm','sqp','Display', 'off');
-index = 1;
 
 A = [1;-1];
 Aproj = blkdiag(A,A,A,A,A,A,A);
