@@ -3,7 +3,7 @@
 % gamma: estimated external torque
 % chi: particles at the current time
 %function [x,fval] = observationModel(Sigma, q, gamma,chi,link)
-function [fval] = observationModel( q, gamma,chi,link)
+function [fval] = observationModel2( q, gamma,chi,link)
     
     %to test it observationModel(eye(4)*1,[0 -pi/3 pi/4 pi/2 0 0 0],[1 3 2
     %0 0 0 0],[1;1;1;1],4)  n

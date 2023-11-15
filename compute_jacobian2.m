@@ -1,9 +1,9 @@
-function [J,PointEstimation] = compute_jacobian(qq,point,link)
+function [J,Jsubs] = compute_jacobian2(qq,point,link)
     %d0 d1 d2 d3 real to add when known
     if size(point,1)==3
         point=[point;1];
     end
-    %example of its use is: [J,Jsubs]=compute_jacobian([1 2 0 0 1 1 3 0 0.2 0.3 0.4 0.3 0 0],[1;2;2],7)
+    %example of its use is: [J,Jsubs]=compute_jacobian2([1 2 0 0 1 1 3 0 0.2 0.3 0.4 0.3 0 0],[1;2;2],7)
     syms q1 q2 q3 q4 q5 q6 q7
     syms t
     syms Q(t) Q1(t) Q2(t) Q3(t) Q4(t) Q5(t) Q6(t) Q7(t)
@@ -69,45 +69,18 @@ end
 % A{1} = M1;
 
 %% Point calculation
-% now, given the position of the point application that is the result of
-% the residual.m file we transform the point from the world frame to the
-% actual frame and then apply it to the homegeneus matrix of the
-% correspondent link in order to find the jacobian of a generic point in
-% the link "link"
+p0E=A{link}*point;
+JJJ(1:3,1)=cross([0;0;1],p0E(1:3));
 
-
-%     for i=1:link
-%         A_numeric{i}=subs(A{i},{q1,q2,q3,q4,q5,q6,q7},{qq(1),qq(2),qq(3),qq(4),qq(5),qq(6),qq(7)});
-%     end
-% 
-% 
-%     for i=1:link
-%        invA_numeric{i}=inv(A_numeric{i});
-%     end
-% 
-%         if point == 0
-%             
-%                 point_inActualFrame =[0 0 1 1]';
-%                 
-%         else
-%             point = [point ; 1];
-%             point_inActualFrame=invA_numeric{link}*point;
-%             
-%             
-%         end
- %PointEstimation = A{link}*point_inActualFrame;
-
- PointEstimation = A{link}*point;
-
+for j=1:link-1
     
+    JJJ(1:3,j+1)=cross(subs(A{j}(1:3,3),{q1,q2,q3,q4,q5,q6,q7},{qq(1),qq(2),qq(3),qq(4),qq(5),qq(6),qq(7)}),(p0E(1:3)-A{j}(1:3,4))');
+end
+JJJ = vpa(subs(JJJ,{q1,q2,q3,q4,q5,q6,q7},{qq(1),qq(2),qq(3),qq(4),qq(5),qq(6),qq(7)}),3);
+%JJ = vpa(subs(JJ,{q1,q2,q3,q4,q5,q6,q7},{qq(1),qq(2),qq(3),qq(4),qq(5),qq(6),qq(7)}),3)
 
-    JJ = jacobian(PointEstimation,q);
-    %Jsubs = subs(JJ,{q1,q2,q3,q4,q5,q6,q7},{Q1(t),Q2(t),Q3(t),Q4(t),Q5(t),Q6(t),Q7(t)});
-    JJ=JJ(1:4,1:link);
-    J(:,1:link) = subs(JJ,{q1,q2,q3,q4,q5,q6,q7},{qq(1),qq(2),qq(3),qq(4),qq(5),qq(6),qq(7)});
-    PointEstimation=subs(PointEstimation,{q1,q2,q3,q4,q5,q6,q7},{qq(1),qq(2),qq(3),qq(4),qq(5),qq(6),qq(7)});
-   
-    J = J(1:3,1:7);
+
+    J=vpa(JJJ,2);
     %sizeJ = size(J);
 
 end

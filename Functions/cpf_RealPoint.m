@@ -62,43 +62,54 @@ function [chi, W_prime,generated_points] = cpf_RealPoint(num_part, chi_prev, q, 
         X = zeros(3, num_part);                           %to store the points on the cylinder line   
         W = zeros(1, num_part);                           %to store the weigths
         W_prime = W;
-        figure();
+       % figure();
         for i = 1:num_part
 
-            for j=1:num_part_multiplicator
+            
                     m=randi([0, 1]) * 2 - 1;
-                    closest_point(:,j) = chi_prev(:,i) + m .* rand(3,1)* 0.07;
-                        if isempty( closest_point_to_triangle(triangles, closest_point(:,j)'))
-                            continue;
-                        end
+
+                            while 1
+                                 closest_point = chi_prev(:,i) + m .* rand(3,1)* 0.07;
+                                 
+                              if ~(isempty(closest_point_to_triangle(triangles, closest_point'))|| isequal(closest_point_to_triangle(triangles, closest_point'), [0; 0; 0]) )
+                                    Particles(:,i) = closest_point_to_triangle(triangles, closest_point');
+                            
+                                  break;
+                              end
+                              end
                         
-                     Particles(:,num_part_multiplicator*(i-1)+j) = closest_point_to_triangle(triangles, closest_point(:,j)');
         
                   
                     
                     
-                    [fval] = observationModel(Sigma, q, gamma,  Particles(:,num_part_multiplicator*(i-1)+j),link);
+                    [fval] = observationModel(Sigma, q, gamma,  Particles(:,i),link);
                     
                     fval = fval + gamma*Sigma*gamma';
                                   
-                     W(1,num_part_multiplicator*(i-1)+j) = exp(-0.5*fval);
+                     W(1,i) = exp(-0.5*fval);
                      %disp(vpa(norm([0.0479, 0.0455, -0.0362]-Particles(:,num_part_multiplicator*i+j)'),3))
                     %disp( vpa((exp(-0.5*fval))',3))
                     hold on
 
-                    plot(norm([-0.0438, -0.106, -0.048]-Particles(:,num_part_multiplicator*(i-1)+j)'),(exp(-0.5*fval))','--rs','LineWidth',2,'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',10)
+                    %plot(norm([-0.0438, -0.106, -0.048]-Particles(:,num_part_multiplicator*(i-1)+j)'),(exp(-0.5*fval))','--rs','LineWidth',2,'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',10)
                      W_prime = W;
-            end
+            
              
         end
-        figure(f6);
+       % figure(f6);
         %scatter3(Particles(1,:),Particles(2,:),Particles(3,:))
-        hold on
+        
+       % errorParticles=vecnorm([-0.0438, -0.106, -0.048]-Particles',2,2)
+        hold off
 
-     W = W./sum(W); % normalization 
+        W = W./sum(W)
+        scatter(errorParticles',W)
+      % normalization 
     % new_indeces=resample(num_part, W_processed,size(Particles_processed,2)); %resampling
+    
     new_indeces=resample2(num_part, W); %resampling
-      chi = Particles(:, new_indeces);          %maintain the best particles
+    new_indeces2 = resample(20, W,100)
+    chi = Particles(:, new_indeces2);          %maintain the best particles
      
      
 
@@ -108,8 +119,8 @@ function [chi, W_prime,generated_points] = cpf_RealPoint(num_part, chi_prev, q, 
             %scatter3(point_on_surface(1),point_on_surface(2),point_on_surface(3),'g', 'filled' ,'SizeData', 40);
             
             
-            disp('size particles')
-            size(chi,2)
+            %disp('size particles')
+            %size(chi,2)
 end
 
 
