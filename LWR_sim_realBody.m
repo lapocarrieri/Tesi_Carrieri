@@ -97,7 +97,7 @@ TAU_FRICTION = zeros(samples, n);
 
 Niterations=5;
 speed=1;
-num_part=100;
+num_part=60;
 chi = zeros(3,num_part);
     
 Jtranspose_link=zeros(7,3);
@@ -135,7 +135,7 @@ parameters;
      
 end
 %% Now there is the matlab simulation of the movement
-load('initialization5')
+load('initialization1')
 disp('The point in the actual frame is:')
 disp(vpa(point',3));
     close all
@@ -166,12 +166,13 @@ f6=figure;
             title('3D Point Cloud');
             grid on;
             CalculatedPoint=[0 0 0];
+            num_part=60;
 while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
      disp('time instant:')
      disp(t0);
      
 %      if index>99
-%          save('initialization5')
+%          save('initialization1')
 %          return;
 %       end
 %     %figure(f1);
@@ -478,7 +479,8 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
         %R = NoncausalButterworthFilter(R);
         %% Point estimation - initialization of the contact particle filter
         r=R(end,:);
-        errorTorque=vpa(norm(R(end,:)-TauExternalForce),2)
+        errorTorque=vpa(abs(R(end,:)-TauExternalForce),2)
+        continue;
         Residual_calculated(index,:)=R(end,:);
         Sigma_calculated(index)=Sigma(end);
         %figure(f4),plotTorque(TauExtForce,Residual_calculated,index, 3,DeltaT)
@@ -579,21 +581,21 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 %                 disp('Solution:')
 %                 disp(x); 
             
-                %WeightCalculation;
-                %W=diag(weights);
+                WeightCalculation;
+                W=diag(weights);
                 J_withwrenchesweightedPseudoinverse=W^(-1/2)*pinv(J_withwrenches'*W^(-1/2));
                        wrenches5=J_withwrenchesweightedPseudoinverse*R(end,:)';
                            
                             
                         error5 = [ExternalForceAppliedActualFrame;m]-wrenches5;
-                        
+                        norm(error5)
                
                % null-space method
-               % norm(error1)
-               % norm(error2)
-               % norm(error3)
-               % norm(error4) 
-               % norm(error5)
+               norm(error1)
+               norm(error2)
+               norm(error3)
+               norm(error4) 
+               norm(error5)
                
                %wrenches3=[ExternalForceAppliedActualFrame;m];
               f_i=wrenches5(1:3);
@@ -625,7 +627,7 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
                 line.direction=line.direction(1:3);
                 RealPointIntersected=T_actualframe*[point;1];
                 disp(vpa(RealPointIntersectedWorldFrame,2))
-                %figure(f3),plot3( RealPointIntersected(1), RealPointIntersected(2),RealPointIntersected(3), 'o', 'MarkerSize', 4, 'MarkerFaceColor', 'r', 'LineWidth', 2);
+                figure(f3),plot3( RealPointIntersected(1), RealPointIntersected(2),RealPointIntersected(3), 'o', 'MarkerSize', 4, 'MarkerFaceColor', 'r', 'LineWidth', 2);
                 hold on
                
                 Point_intersected = IntersectionPoint(line,link,Q_sampled(index,:),RealPointIntersected(1:3),Meshes,f3);
@@ -696,27 +698,28 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
         disp(vpa(Point_intersectedActualFrame(1:3)',2))
            ErrorBeforeCPF_ActualFrame=abs(Point_intersectedActualFrame(1:3)-point);
           disp('error before CPF:')
-           disp(vpa(norm(ErrorBeforeCPF_ActualFrame),3))
-            %  figure(f6),scatter3(point(1),point(2),point(3),'h', 'filled' ,'SizeData', 50);
+           disp(vpa(ErrorBeforeCPF_ActualFrame,3))
+              figure(f6),scatter3(point(1),point(2),point(3),'h', 'filled' ,'SizeData', 50);
             % Add a text label
             hold on
-             %   figure(f6),text(point(1),point(2),point(3), 'Real Point', 'FontSize', 6, 'HorizontalAlignment', 'left');
+                figure(f6),text(point(1),point(2),point(3), 'Real Point', 'FontSize', 6, 'HorizontalAlignment', 'left');
              
            disp('CPF:')
-           %is_initialized=false;
-           num_part=100;
+           is_initialized=false;
+          num_part=60;
         for i=1:speed:Niterations
-            
+            size(chi)
+          next_part=60/i;
             %disp(i+'-th iteration for the CPF');
             %is_collided
             % starting Niterations before the end the contact particle
             % filter is iterated Niterations times until the last index.
             % this is done at every time instant so if the number of
             % iterations is high the code is very slow 
-                    %  figure(f6),scatter3(point(1),point(2),point(3),'h', 'filled' ,'SizeData', 50);
+                      figure(f6),scatter3(point(1),point(2),point(3),'h', 'filled' ,'SizeData', 50);
             % Add a text label
             hold on
-              %  figure(f6),text(point(1),point(2),point(3), 'Real Point', 'FontSize', 6, 'HorizontalAlignment', 'left');
+                figure(f6),text(point(1),point(2),point(3), 'Real Point', 'FontSize', 6, 'HorizontalAlignment', 'left');
              
        
            
@@ -761,16 +764,16 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
      
             generated_points=zeros(3,num_part);
             
-            [chi, W_prime,generated_points] = cpf_RealPoint(num_part, chi, Q_sampled(index,:), Residual_calculated(index,:), Point_intersectedActualFrame,link_collided(index),is_initialized,Meshes,triangles,f6,generated_points);
+            [chi, W_prime,generated_points,num_part] = cpf_RealPoint(num_part,next_part, chi, Q_sampled(index,:), Residual_calculated(index,:), Point_intersectedActualFrame,link_collided(index),is_initialized,Meshes,triangles,f6,generated_points);
             hold on
             
             
             is_initialized=true;
 
-           % figure(f6),scatter3(chi(1,:),chi(2,:),chi(3,:),'y', 'filled' ,'SizeData', 50);
+            figure(f6),scatter3(chi(1,:),chi(2,:),chi(3,:),'y', 'filled' ,'SizeData', 50);
             hold off
             
-             CalculatedPoint=computeBari(chi);
+             CalculatedPoint=computeBari(chi)
              
              %ErrorAfterCPF(:,ind)
              ErrorAfterCPF(:,ind)=abs(CalculatedPoint(1:3)'-point);
@@ -784,14 +787,15 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
              
              ind=ind+1;
              contact_point_PF = Rotation*CalculatedPoint'+tran;
-
-            % figure(f6),scatter3(CalculatedPoint(1),CalculatedPoint(2),CalculatedPoint(3),'p', 'filled' ,'SizeData', 50);
+             disp('error Contact point calculated after CPF:')
+             disp(vpa(norm(RealPointIntersectedWorldFrame(1:3)-contact_point_PF),4))
+             figure(f6),scatter3(CalculatedPoint(1),CalculatedPoint(2),CalculatedPoint(3),'p', 'filled' ,'SizeData', 50);
             % Add a text label
             textname="CalculatedPoint "+i+"-th iteration";
-              %  figure(f6),text(CalculatedPoint(1),CalculatedPoint(2),CalculatedPoint(3), textname, 'FontSize', 6, 'HorizontalAlignment', 'left');
+                figure(f6),text(CalculatedPoint(1),CalculatedPoint(2),CalculatedPoint(3), textname, 'FontSize', 6, 'HorizontalAlignment', 'left');
              %disp(vpa(contact_point_PF',4))
              
-             ErrorAfterCPFWorldFrame(ind)=norm(RealPointIntersectedWorldFrame(1:3)-contact_point_PF);
+             ErrorAfterCPFWorldFrame(:,ind)=abs(RealPointIntersectedWorldFrame(1:3)-contact_point_PF);
 
                % disp(vpa(abs(RealPointIntersectedWorldFrame(1:3)-contact_point_PF),4))
              %[fval(end+1)] = observationModel(eye(7), Q_sampled(i,:),Residual_calculated(i,:),[ForcePointApplication(i,:); 1]',link_collided(i));
@@ -805,13 +809,11 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 
 
         end
-               disp('error Contact point calculated after CPF:')
-             disp(vpa(ErrorAfterCPFWorldFrame,3))
         %disp('Error After CPF World Frame:')
         %disp(vpa(ErrorAfterCPFWorldFrame,2));
-     %   figure(f5),plot(1:size(ErrorAfterCPF,2),norm(ErrorAfterCPF));
+        figure(f5),plot(1:size(ErrorAfterCPF,2),norm(ErrorAfterCPF));
         hold on
-      %  figure(f5),plot(1:size(ErrorAfterCPFWorldFrame,2),norm(ErrorAfterCPFWorldFrame));
+        figure(f5),plot(1:size(ErrorAfterCPFWorldFrame,2),norm(ErrorAfterCPFWorldFrame));
         %plot the cylinder
        % figure(f2),h2 = surf(double(X_prime),double(Y_prime),double(Z_prime));
         %xlabel('x');

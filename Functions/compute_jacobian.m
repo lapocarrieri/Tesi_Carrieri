@@ -1,4 +1,4 @@
-function [J,PointEstimation] = compute_jacobian(qq,point,link)
+function [J,Jsubs] = compute_jacobian(qq,point,link)
     %d0 d1 d2 d3 real to add when known
     if size(point,1)==3
         point=[point;1];
@@ -105,8 +105,7 @@ end
     %Jsubs = subs(JJ,{q1,q2,q3,q4,q5,q6,q7},{Q1(t),Q2(t),Q3(t),Q4(t),Q5(t),Q6(t),Q7(t)});
     JJ=JJ(1:4,1:link);
     J(:,1:link) = subs(JJ,{q1,q2,q3,q4,q5,q6,q7},{qq(1),qq(2),qq(3),qq(4),qq(5),qq(6),qq(7)});
-    PointEstimation=subs(PointEstimation,{q1,q2,q3,q4,q5,q6,q7},{qq(1),qq(2),qq(3),qq(4),qq(5),qq(6),qq(7)});
-   
+    
     J = J(1:3,1:7);
     %sizeJ = size(J);
 

@@ -1,4 +1,4 @@
-function [J,PointEstimation] = ComputePoint_withWrenches(qq,link)
+function [J] = ComputePoint_withWrenches(qq,link)
         %example of its use is: J=ComputePoint_withWrenches([2*pi 0 pi/3 pi/8 -pi/3 0 pi/4],2)
     syms q1 q2 q3 q4 q5 q6 q7
     syms t
@@ -52,7 +52,7 @@ M{7} = [C7,-S7,0,0; S7,C7,0,0; 0,0,1,l4; 0,0,0,1];
 % M7 = [C7,-S7,0,0; S7,C7,0,0; 0,0,1,l4; 0,0,0,1];
 % now define the 2 7D vectors containing the homogeneus transformation
 % matrixes
-% A1 is 0R1
+
 A{1}=M{1};
 %through the premultiplication find the 7 transformation matrixes that
 %transform the point in the actual frame to the point in the world frame
@@ -61,7 +61,6 @@ JJw(1:3,1)=[0 0 1]';
 for j=2:link
     A{j}=A{j-1}*M{j};
 end
-% A2 is 0R2
 for j=1:link-1
       JJw(1:3,j+1)=subs(A{j}(1:3,3),{q1,q2,q3,q4,q5,q6,q7},{qq(1),qq(2),qq(3),qq(4),qq(5),qq(6),qq(7)}); 
 end
@@ -75,7 +74,6 @@ end
 JJJ = vpa(subs(JJJ,{q1,q2,q3,q4,q5,q6,q7},{qq(1),qq(2),qq(3),qq(4),qq(5),qq(6),qq(7)}),3);
 %JJ = vpa(subs(JJ,{q1,q2,q3,q4,q5,q6,q7},{qq(1),qq(2),qq(3),qq(4),qq(5),qq(6),qq(7)}),3)
 J(:,1:link)=[JJJ;JJw];
-PointEstimation=subs(A{link}(1:3,4),{q1,q2,q3,q4,q5,q6,q7},{qq(1),qq(2),qq(3),qq(4),qq(5),qq(6),qq(7)});
 
 
 

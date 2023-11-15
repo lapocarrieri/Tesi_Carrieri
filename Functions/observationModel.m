@@ -1,15 +1,14 @@
-  % Sigma: standard devation of the measurements
+% Sigma: standard devation of the measurements
 % q: current joint angle
 % gamma: estimated external torque
 % chi: particles at the current time
 %function [x,fval] = observationModel(Sigma, q, gamma,chi,link)
-function [fval] = observationModel( q, gamma,chi,link)
+function [fval] = observationModel(Sigma, q, gamma,chi,link)
     
     %to test it observationModel(eye(4)*1,[0 -pi/3 pi/4 pi/2 0 0 0],[1 3 2
     %0 0 0 0],[1;1;1;1],4)  n
-    
-   % [Jc,~] = compute_jacobian(q,chi,link);
-    Jc=ComputePoint_withWrenches(q,link)
+
+    [Jc,~] = compute_jacobian(q,chi,link);
      
      
 
@@ -47,19 +46,8 @@ function [fval] = observationModel( q, gamma,chi,link)
         %if instead of the optimization problem you want to use the classical 
         %technique to compute the cost function
      %Fc = pinv(Jc')*gamma'
-   % Fc = pinv(Jc')*gamma;
 
-     W=pinv(Jc')*gamma';
-    f_i=W(1:3);
-     Sf_i=[0 -f_i(3) f_i(2) ; f_i(3) 0 -f_i(1) ; -f_i(2) f_i(1) 0 ];
-
-     
-     m=-Sf_i*chi(1:3);
-     disp(W(4:6))
-     m
-     W(4:6)=m;
-     
-      %Fc = (Sigma*Jc'*inv(Jc*Sigma*Jc'))'*gamma';%weighted pinv
-     fval = (gamma'-Jc'*W)'*(gamma'-Jc'*W);    
+     Fc = (Sigma*Jc'*inv(Jc*Sigma*Jc'))'*gamma';%weighted pinv
+     fval = (gamma'-Jc'*Fc)'*(gamma'-Jc'*Fc);
 
 end
