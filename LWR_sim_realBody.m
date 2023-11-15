@@ -165,9 +165,11 @@ f6=figure;
             zlabel('Z');
             title('3D Point Cloud');
             grid on;
+            CalculatedPoint=[0 0 0];
 while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
      disp('time instant:')
      disp(t0);
+     
 %      if index>99
 %          save('initialization5')
 %          return;
@@ -501,12 +503,12 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
                 %J_withwrenches = ComputePoint_withWrenches(Q_sampled(index,:),link_collided(index));
                 J_withwrenches = ComputePoint_withWrenches(Q_sampled(index,:),link);
 
-                wrenches=pinv(J_withwrenches')*R(end,:)';
+                wrenches1=pinv(J_withwrenches')*R(end,:)';
                 %ExternalForce_Real =(pinv(transpose(J_force))*Tau_residual')'
         
 
                 
-                                error1 = [ExternalForceAppliedActualFrame;m]-wrenches;
+                                error1 = [ExternalForceAppliedActualFrame;m]-wrenches1;
                
                 % Calculate the SVD of matrix A
                 [U, S, V] = svd(J_withwrenches');
@@ -576,21 +578,31 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 %                 % Display the solution
 %                 disp('Solution:')
 %                 disp(x); 
-
-
+            
+                WeightCalculation;
+                W=diag(weights)
+                J_withwrenchesweightedPseudoinverse=W^(-1/2)*pinv(J_withwrenches'*W^(-1/2));
+                       wrenches5=J_withwrenchesweightedPseudoinverse*R(end,:)';
+                           
+                            
+                        error5 = [ExternalForceAppliedActualFrame;m]-wrenches5;
+                        norm(error5)
+               
                % null-space method
                norm(error1)
                norm(error2)
                norm(error3)
                norm(error4) 
-               wrenches3=[ExternalForceAppliedActualFrame;m];
-              f_i=wrenches3(1:3);
-                m_i=wrenches3(4:6);
-                f_ext=f_i;
+               norm(error5)
+               
+               %wrenches3=[ExternalForceAppliedActualFrame;m];
+              f_i=wrenches5(1:3);
+                m_i=wrenches5(4:6);
+                
                
                 
                 Sf_i=[0 -f_i(3) f_i(2) ; f_i(3) 0 -f_i(1) ; -f_i(2) f_i(1) 0 ];
-                
+                p_dc=Sf_i*m_i/(norm(f_i))^2;
 
 %                 radii = 0.05;   
 %                  x = radii*cos(pi/3)+ cnt(1);
@@ -599,7 +611,7 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 %                  p_dc=[x, y,z]'
 
 
-                p_dc=Sf_i*m_i/(norm(f_i))^2;
+                
                
                % p_dc=pinv(-Sf_i)*m_i
               
@@ -618,11 +630,12 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
                
                 Point_intersected = IntersectionPoint(line,link,Q_sampled(index,:),RealPointIntersected(1:3),Meshes,f3);
                 if Point_intersected==[0 0 0]
-                    Point_intersected==[0 0 0.1]
-                    disp('point initialiazione invented')
+                    Point_intersected_actual_frame=closest_point_to_triangle(triangles, p_dc');
+                    Point_intersected=T_actualframe*[Point_intersected_actual_frame';1];
+                    disp('point initialiazation not optimal')
                 end
-                
-
+                Point_intersected=(Point_intersected(1:3))';
+            
                 disp(vpa(Point_intersected,2))
 
                 
@@ -632,13 +645,13 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 
                 %fprintf('the point calculated with the residuals is: %d\n',PointRetrieved)
 %                 m=-S_fext*PointOnTheCylinder1
-                 m_calculated=-S_fext*p_dc;
-                 error_momentum=abs(m-m_calculated)  ;
+                 %m_calculated=-S_fext*p_dc;
+                 %error_momentum=abs(m-m_calculated)  ;
                 
 %                
 %     
 %                 error_initialization=abs(point(1:3)-PointRetrieved)
-                error_initialization=(vpa(abs(RealPointIntersected(1:3)-Point_intersected(1,:)'),3))
+                error_initialization=(vpa(norm(RealPointIntersected(1:3)-Point_intersected(1,:)'),3))
 
                 
                
@@ -656,9 +669,9 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
         if NumberNonCollidedSamples>10
             chi = zeros(3,num_part);
         end
-          if Point_intersected==[ 0 0 0]
-                break;
-          end
+%           if Point_intersected==[ 0 0 0]
+%                 break;
+%           end
         
 
         %lambda = -1:0.01:1;
@@ -678,10 +691,11 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
             Rotation = T(1:3,1:3);
              tran = T(1:3,4);
 
-         Point_intersectedActualFrame=double(inv(T)*[Point_intersected(1,:)';1]);
+         Point_intersectedActualFrame=double(inv(T)*[Point_intersected';1]);
         disp('Point_intersectedActualFrame:')
-        disp(vpa(Point_intersectedActualFrame',2))
+        disp(vpa(Point_intersectedActualFrame(1:3)',2))
            ErrorBeforeCPF_ActualFrame=abs(Point_intersectedActualFrame(1:3)-point);
+          disp('error before CPF:')
            disp(vpa(ErrorBeforeCPF_ActualFrame,3))
               figure(f6),scatter3(point(1),point(2),point(3),'h', 'filled' ,'SizeData', 50);
             % Add a text label
@@ -690,8 +704,9 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
              
            disp('CPF:')
            is_initialized=false;
+           num_part=20;
         for i=1:speed:Niterations
-          
+            size(chi)
             %disp(i+'-th iteration for the CPF');
             %is_collided
             % starting Niterations before the end the contact particle
@@ -745,6 +760,7 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
             % (chi are the particles in respect to the actual frame)
      
             generated_points=zeros(3,num_part);
+            
             [chi, W_prime,generated_points] = cpf_RealPoint(num_part, chi, Q_sampled(index,:), Residual_calculated(index,:), Point_intersectedActualFrame,link_collided(index),is_initialized,Meshes,triangles,f6,generated_points);
             hold on
             
@@ -753,7 +769,9 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 
             figure(f6),scatter3(chi(1,:),chi(2,:),chi(3,:),'y', 'filled' ,'SizeData', 50);
             hold off
-             CalculatedPoint=computeBari(chi);
+            
+             CalculatedPoint=computeBari(chi)
+             
              %ErrorAfterCPF(:,ind)
              ErrorAfterCPF(:,ind)=abs(CalculatedPoint(1:3)'-point);
              
@@ -766,10 +784,12 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
              
              ind=ind+1;
              contact_point_PF = Rotation*CalculatedPoint'+tran;
-             disp('Contact point calculated after CPF:')
+             disp('error Contact point calculated after CPF:')
+             disp(vpa(norm(RealPointIntersectedWorldFrame(1:3)-contact_point_PF),4))
              figure(f6),scatter3(CalculatedPoint(1),CalculatedPoint(2),CalculatedPoint(3),'p', 'filled' ,'SizeData', 50);
             % Add a text label
-                figure(f6),text(CalculatedPoint(1),CalculatedPoint(2),CalculatedPoint(3), 'CalculatedPoint ', 'FontSize', 6, 'HorizontalAlignment', 'left');
+            textname="CalculatedPoint "+i+"-th iteration";
+                figure(f6),text(CalculatedPoint(1),CalculatedPoint(2),CalculatedPoint(3), textname, 'FontSize', 6, 'HorizontalAlignment', 'left');
              %disp(vpa(contact_point_PF',4))
              
              ErrorAfterCPFWorldFrame(:,ind)=abs(RealPointIntersectedWorldFrame(1:3)-contact_point_PF);
@@ -786,8 +806,8 @@ while (t0<tf)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 
 
         end
-        disp('Error After CPF World Frame:')
-        disp(vpa(ErrorAfterCPFWorldFrame,2));
+        %disp('Error After CPF World Frame:')
+        %disp(vpa(ErrorAfterCPFWorldFrame,2));
         figure(f5),plot(1:size(ErrorAfterCPF,2),norm(ErrorAfterCPF));
         hold on
         figure(f5),plot(1:size(ErrorAfterCPFWorldFrame,2),norm(ErrorAfterCPFWorldFrame));
