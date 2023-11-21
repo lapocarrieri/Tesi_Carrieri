@@ -17,31 +17,17 @@ close all;
 clear all;
  ss = 1;
  Sigma=0;
-currentPool = gcp('nocreate'); % Get the current pool, if it exists
-
-if isempty(currentPool)
-    % No pool is active, so create a new one
-    pool = parpool(2); % Create a pool with 2 workers
-
-    % Your parallel code here
-    
-    % Delete the pool when you're done with it
-    
-else
-    % A pool is already active, display a message
-    disp('A parallel pool is already active. Skipping pool creation.');
-end
 n=10000;
 time=zeros(n,1);
 firstTime=true;
    addpath 'Dynamics'
 
    addpath 'Functions'
- 
+
 %% Hyperparameters to be set
 
 %% Now there is the matlab simulation of the movement
-load('initialization2.mat')
+load('initialization5.mat')
 tf=10;
 disp('The point in the actual frame is:')
 disp(vpa(point',3));
@@ -73,7 +59,7 @@ f6=figure;
             title('3D Point Cloud');
             grid on;
             CalculatedPoint=[0 0 0];
-             save('sharedVar2','CalculatedPoint');
+            save('sharedVar2','CalculatedPoint');
             gainE=100;
             gain=gain*100000;
             GainInv=inv(eye(7)+gain*DeltaT) * gain ;
@@ -92,6 +78,7 @@ acc=zeros(1,7);
 d2p_ref =[   -0.0494    0.0077         0]';
         Kp=[10,0,0;0,20,0;0,0,20];
         Kd=Kp;
+        Point_intersected=Point_intersected';
         tic
 while (toc<240)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
      disp('time instant:')
@@ -385,85 +372,18 @@ while (toc<240)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
         %LINKK=link_collided(index)
 
         if is_collided(index) == 1 
-                %J_withwrenches = ComputePoint_withWrenches(Q_sampled(index,:),link_collided(index));
                 J_withwrenches = ComputePoint_withWrenches(Q_sampled(index,:),LinkInCollision);
-
-                wrenches1=pinv(J_withwrenches')*Residual_calculated(index,:)';
-                error1 = [ExternalForceAppliedActualFrame;m]-wrenches1;
-               
-                % Calculate the SVD of matrix A
-                [U, S, V] = svd(J_withwrenches');
-                s = diag(S);
-                tol = max(size(J_withwrenches')) * eps(max(s));
-                rr = sum(s > tol);
-                U_r = U(:, 1:rr);
-                V_r = V(:, 1:rr);
-                S_inv = diag(1./s(1:rr));
-                wrenches2 = V_r * S_inv * U_r' * Residual_calculated(index,:)';
-               
-                error2 = [ExternalForceAppliedActualFrame;m]-wrenches2;
-               % DLS method
-%                it=1;
-%                
-%                for lambda=0:0.001:100
-%                       % Damping parameter (you can adjust this value)
-%                     wrenches4 = (J_withwrenches*J_withwrenches' + lambda^2*eye(size(J_withwrenches', 2))) \ (J_withwrenches*R(end,:)');
-%                     
-%                     error4 = [ExternalForceAppliedActualFrame;m]-wrenches4;
-%                     normerror4(it)=norm(error4);
-%                     it=it+1;
-%                end
-%               plot(normerror4)
-                lambda = 0.1;
-               wrenches3 = (J_withwrenches*J_withwrenches' + lambda^2*eye(size(J_withwrenches', 2))) \ (J_withwrenches*Residual_calculated(index,:)');
-                    
-                    error3 = [ExternalForceAppliedActualFrame;m]-wrenches3;
-                    if firstTime
-                        Weightcalculated
-                    end
-%                     W=eye(6);
-%                    W(1,1)=60;
-%                    W(2,2)=45;
-%                    W(3,3)=44;
-%                    W(4,4)=55;
-%                    W(5,5)=52;
-%                    W(6,6)=53;
-                   J_withwrenches_transpose=J_withwrenches';
-                   
-                   mu=0.01;
-                %J_withwrenchesweightedPseudoinverse3=inv(W)*J_withwrenches_transpose'*inv(J_withwrenches_transpose*inv(W)*J_withwrenches_transpose')
-                 J_withwrenchesweightedPseudoinverse4=inv(W_calculated)*J_withwrenches_transpose'*inv(J_withwrenches_transpose*inv(W_calculated)*J_withwrenches_transpose'+mu^2*eye(7));
-                       
-                wrenches4=J_withwrenchesweightedPseudoinverse4*Residual_calculated(index,:)';
-                error4 = [ExternalForceAppliedActualFrame;m]-wrenches4;
                 
-%                 % quadratic programming method
-%                 % Define the matrices A and C, and vectors b and D
-%                 A = [1, 2, 3; 4, 5, 6; 7, 8, 9];
-%                 b = [1; 2; 3];
-%                 C = [1, 0, 0; 0, 1, 0];
-%                 D = [3; 4];
-%                 
-%                 % Solve the quadratic programming problem
-%                 x = quadprog(A' * A, -A' * b, C, -D);
-%                 
-%                 % Display the solution
-%                 disp('Solution:')
-%                 disp(x); 
-            %PreviousPoint
+
                 WeightCalculation;
                 W2=diag(weights);
-                J_withwrenchesweightedPseudoinverse5=inv(W2)*J_withwrenches_transpose'*inv(J_withwrenches_transpose*inv(W2)*J_withwrenches_transpose'+mu^2*eye(7));
+                mu=0.01;
+                J_withwrenchesweightedPseudoinverse5=inv(W2)*J_withwrenches*inv(J_withwrenches'*inv(W2)*J_withwrenches+mu^2*eye(7));
                 wrenches5=J_withwrenchesweightedPseudoinverse5*Residual_calculated(index,:)';
                 error5 = [ExternalForceAppliedActualFrame;m]-wrenches5;
-               errors(index,1,:)=error1;
-               errors(index,2,:)=error2;
-               errors(index,3,:)=error3;
-               errors(index,4,:)=error4;
-               errors(index,5,:)=error5;
-
-               continue;     
 %% Point calculation through f and m
+               wrenches5=pinv(J_withwrenches')*Residual_calculated(index,:)';
+                error1 = [ExternalForceAppliedActualFrame;m]-wrenches5;
                
                %wrenches3=[ExternalForceAppliedActualFrame;m];
               f_i=wrenches5(1:3);
@@ -495,6 +415,7 @@ while (toc<240)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
                 RealPointIntersected=double(T*[point;1]);
                 %disp(vpa(RealPointIntersectedWorldFrame,2))
                 figure(f3),plot3( RealPointIntersected(1), RealPointIntersected(2),RealPointIntersected(3), 'o', 'MarkerSize', 4, 'MarkerFaceColor', 'r', 'LineWidth', 2);
+                
                 hold on
                 Point_intersected = IntersectionPoint(line,link,Point_intersected(1:3),Meshes,f3,T);
                 disp('Point_intersected')
@@ -504,7 +425,8 @@ while (toc<240)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
                     disp('point initialiazation not optimal')
                 end
                 Point_intersected=double(Point_intersected(1:3)');
-            
+                figure(f3),plot3( Point_intersected(1), Point_intersected(2),Point_intersected(3), 'o', 'MarkerSize', 4, 'MarkerFaceColor', 'g', 'LineWidth', 2);
+                
 
                 
 %                      raggio1=  sqrt(PointRetrieved(1)^2+PointRetrieved(2)^2)
@@ -520,8 +442,8 @@ while (toc<240)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 %     
 %                 error_initialization=abs(point(1:3)-PointRetrieved)
                 error_initialization=(vpa(norm(RealPointIntersected(1:3)-Point_intersected(1,:)'),3));
-
-                
+                errors_initialization_sampled{index}=error_initialization;
+                Point_intersected_sampled{index}=Point_intersected;
                
 %                 ForcePoint=T*[Point_intersected;1] ;%point in frame 0
 %                 %ForcePointApplication(index,:)=ForcePoint(1:3);
@@ -534,7 +456,6 @@ while (toc<240)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
             NumberNonCollidedSamples=NumberNonCollidedSamples+1;
                 
         end
-        continue;
         if NumberNonCollidedSamples>10
             chi = zeros(3,num_part);
             chi2 = zeros(3,num_part);
@@ -552,7 +473,6 @@ while (toc<240)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
         
         
    
-
        %% CONTACT PARTICLE FILTER
         
         ind=1;
@@ -572,15 +492,12 @@ while (toc<240)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
             hold on
                 figure(f6),text(point(1),point(2),point(3), 'Real Point', 'FontSize', 6, 'HorizontalAlignment', 'left');
                 if mod(t0,10)
-                    save('sharedData.mat', 'point', 'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','f6');
+                    save('sharedData.mat',  'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','f6','speed');
                 end
-                if firstTime
-                   parfeval( @CPF_script, 1); % 0 means no output needed
-                   disp('poolattivato')
-                   firstTime=false;
-               end
-                
-                
+
+                T= QtoP(Q_sampled(index,:),link);
+            Rotation = T(1:3,1:3);
+             tran = T(1:3,4);
                 load('sharedVar2')
                 CalculatedPoint=Point_intersected;
              contact_point_PF = Rotation*CalculatedPoint'+tran;
@@ -641,22 +558,38 @@ end
 %ExternalTauSOSM_calculated
 %ExternalTauSOSML_calculated
 %TauExtForce
-samples2=samples;
 f8=figure()
 plot(time(1:index-1), TauExtForce(1:index-1,:)', 'r', 'LineWidth', 2);
 hold on;
 plot(time(1:index-1), Residual_calculated(1:index-1,:), 'g', 'LineWidth', 0.5);
 hold off
+figure();
+for i = 2:length(errors_initialization_sampled)
+    hold on
+    plot(time(i), errors_initialization_sampled{i}, '.');
+end
+return;
 figure()
 plot(time(1:index-1), Q_sampled(1:index-1,:)', 'r', 'LineWidth', 2);
 figure()
 plot(time(1:index-1), QD_sampled(1:index-1,:)', 'r', 'LineWidth', 2);
 figure()
 plot(time(1:index-1), QDD_sampled(1:index-1,:)', 'r', 'LineWidth', 2);
+figure()
+plot(time(1:index-1), errors_initialization_sampled{1:index-1}, 'r', 'LineWidth', 2);
 
-saveas(f9, 'C:\Users\lapoc\Desktop\link2TauR.jpeg');
+saveas(f8, 'C:\Users\lapoc\Desktop\link4TauR.jpeg');
 plots;
-
+figure();
+for i = 2:length(errors_initialization_sampled)
+    hold on
+    plot(time(i), errors_initialization_sampled{i}, '.');
+end
+figure;
+plot(time, error_values, '-o'); % '-o' creates a line plot with circle markers
+xlabel('Time');
+ylabel('Error Value');
+title('Error Initialization Sampled Over Time');
 return;
 robot_plot;
  
@@ -724,5 +657,4 @@ main_Carrieri;
 
 %plot the RF in a generic point with a generic orientation. The lenght of
 %the axis are fixed but eventually can be passed as a parameters
-
 

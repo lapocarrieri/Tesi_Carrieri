@@ -4,7 +4,7 @@
 % gamma: estimated external torque
 % estimated_cp: estimated contact point with the deterministic method used in
 %                the initialization phase
-function [chi,chi2, W_prime,generated_points] = cpf_RealPoint(num_part, chi_prev, qq, gamma, estimated_cp,link,is_initialized,Meshes,triangles,generated_points,point,iteration,Niterations)
+function [chi,chi2, W_prime,generated_points] = cpf_RealPoint2(num_part, chi_prev, qq, gamma, estimated_cp,link,is_initialized,Meshes,triangles,generated_points,point,iteration,Niterations)
     Sigma = eye(7)*1;
     num_part_multiplicator=5;
     matrix = Meshes.Points(:,1:3,link);
@@ -123,47 +123,20 @@ end
                         if isempty( closest_point_to_triangle(triangles, closest_point(:,j)'))
                             continue;
                         end
-                        qq
+                        
                      Particles(:,num_part_multiplicator*(i-1)+j) = closest_point_to_triangle(triangles, closest_point(:,j)');
         
-                  
+                        
                     
-                        link=2;
-                        point=[0,0,0]';
-                        F=[10,2,3]';
-                        m=-skew_symmetric(F)*point
-                        J_w = ComputePoint_withWrenches(qq,link)
-                        JJ = jacobian(A{link}*[point;1],q)
-                        
-                        J = subs(JJ,{q1,q2,q3,q4,q5,q6,q7},{qq(1),qq(2),qq(3),qq(4),qq(5),qq(6),qq(7)})
-                       Asubs=subs(A{link},{q1,q2,q3,q4,q5,q6,q7},{qq(1),qq(2),qq(3),qq(4),qq(5),qq(6),qq(7)})
-                      Jc = J(1:3,1:7);
-                      Jx=Asubs(1:3,1:3)'*Jc
-                        tau1=vpa(Jc'*F,2)
-                        tau3=vpa(Jx'*F,2)
-                        tau2=vpa(J_w'*[F;m],2)
+
+                             
+                    
                          
-                         
-                        J_w = ComputePoint_withWrenches(qq,link)
-
-
-                        
-                         PointEstimation = A{link}*[Particles(:,num_part_multiplicator*(i-1)+j);1] ;
-                        
-                            
-                        
-                            JJ = jacobian(PointEstimation,q);
-                            %Jsubs = subs(JJ,{q1,q2,q3,q4,q5,q6,q7},{Q1(t),Q2(t),Q3(t),Q4(t),Q5(t),Q6(t),Q7(t)});
-                            JJ=JJ(1:4,1:link);
-                            J(:,1:link) = subs(JJ,{q1,q2,q3,q4,q5,q6,q7},{qq(1),qq(2),qq(3),qq(4),qq(5),qq(6),qq(7)});
-                            
-                            Jc = J(1:3,1:7);
-                            %sizeJ = size(J);
-     
-    
-                         Fc = (Sigma*Jc'*inv(Jc*Sigma*Jc'))'*gamma'%weighted pinv
-                         fval = (gamma'-Jc'*Fc)'*(gamma'-Jc'*Fc);
-
+                   
+                        J_w = ComputePoint_withWrenches(qq,link);
+                        [Fm]=pinv(J_w')*gamma';
+                        fval = (skew_symmetric(Particles(:,num_part_multiplicator*(i-1)+j))*Fm(1:3)-Fm(4:6))'*(skew_symmetric(Particles(:,num_part_multiplicator*(i-1)+j))*Fm(1:3)-Fm(4:6));
+                       
 
 
 
@@ -177,14 +150,14 @@ end
 
 
                     
-                    fval = fval + gamma*Sigma*gamma';
+                   % fval = fval + gamma*Sigma*gamma'
                                   
-                     W(1,num_part_multiplicator*(i-1)+j) = exp(-0.5*fval)
+                     W(1,num_part_multiplicator*(i-1)+j) = exp(-0.5*fval);
                      %disp(vpa(norm([0.0479, 0.0455, -0.0362]-Particles(:,num_part_multiplicator*i+j)'),3))
                     %disp( vpa((exp(-0.5*fval))',3))
                     hold on
 
-                    %plot(norm(point-Particles(:,num_part_multiplicator*(i-1)+j)'),(exp(-0.5*fval))','--rs','LineWidth',2,'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',10)
+                    plot(norm(point-Particles(:,num_part_multiplicator*(i-1)+j)'),(exp(-0.5*fval))','--rs','LineWidth',2,'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',10)
                      W_prime = W;
             end
              

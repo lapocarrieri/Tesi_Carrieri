@@ -7,7 +7,10 @@ bias = 1e-2; % Small positive bias value
 % Define the system A and b
 
 % Define the objective function
-objective = @(weights) norm(T*[pinv(-skew_symmetric(weights(1:3))) * weights(4:6);1] - Point_intersected)^2+ bias*sum(weights(1:6));
+if size(Point_intersected,2)>1
+    Point_intersected=Point_intersected';
+end
+objective = @(weights) norm(T*[pinv(-skew_symmetric(weights(1:3))) * weights(4:6);1] - [Point_intersected;1])^2+ bias*sum(weights(1:6));
 
 % Initial guess for the weights
 initial_weights = ones(6, 1);
