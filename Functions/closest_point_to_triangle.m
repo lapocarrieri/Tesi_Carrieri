@@ -3,7 +3,7 @@
 % closest_point = closest_point_to_triangle(triangles, P);
 % disp('Closest point:');
 % disp(closest_point);
-function closest_point = closest_point_to_triangle(triangles, P)
+function [closest_point,normale] = closest_point_to_triangle(triangles, P)
     closest_point = [];
     min_distance = inf;
 
@@ -43,6 +43,7 @@ function closest_point = closest_point_to_triangle(triangles, P)
             if distance < min_distance
                 min_distance = distance;
                 closest_point = closest_point_plane;
+                normale=normal;
             end
         end
     end

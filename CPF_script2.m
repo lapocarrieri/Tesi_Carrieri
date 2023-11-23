@@ -2,9 +2,9 @@ clc;
 clear all;
 close all;
 indixes=1;
-           num_part=10;
+           num_part=50;
            Niterations=10;
-           load('initialization7.mat','Meshes','triangles','point')
+           load('initialization5.mat','Meshes','triangles','point','link')
                initialize=false;
                   addpath 'Dynamics'
                   f6=figure;
@@ -21,6 +21,7 @@ while true
 
             load('sharedData7.mat');
             normBefore=norm(Point_intersectedActualFrame(1:3)-point)
+            J_w = ComputePoint_withWrenches(Q_sampled(index,:),link);
        if link_collided(index) > 0
            disp('CPF:')
            is_initialized=false;
@@ -77,7 +78,7 @@ while true
      
             generated_points=zeros(3,num_part);
             
-            [chi,chi2, W_prime,generated_points] = cpf_RealPoint3(num_part, chi, Q_sampled(index,:), Residual_calculated(index,:), Point_intersectedActualFrame,link_collided(index),is_initialized,Meshes,triangles,generated_points,point,i,Niterations);
+            [chi,chi2, W_prime,generated_points] = cpf_RealPoint2(num_part, chi, Q_sampled(index-10:index,:), Residual_calculated(index-10:index,:), Point_intersectedActualFrame,link,is_initialized,Meshes,triangles,generated_points,point,i,Niterations,J_w);
             
             
             
@@ -95,16 +96,16 @@ while true
              
              save('sharedVar3','CalculatedPoint');
        
-            
+            ErrorAfterCPF1(:,i)=norm(CalculatedPoint(1:3)'-point)
+             ErrorAfterCPF2(:,i)=norm(CalculatedPoint2(1:3)'-point)
              
   
 
-
+        pause(0.1);
 
        end
                % Continuous execution code
-               ErrorAfterCPF1(:,indixes)=norm(CalculatedPoint(1:3)'-point)
-             ErrorAfterCPF2(:,indixes)=norm(CalculatedPoint2(1:3)'-point)
+              
         % ...
            %figure(f6),scatter3(CalculatedPoint(1),CalculatedPoint(2),CalculatedPoint(3),'p', 'filled' ,'SizeData', 50);
             % Add a text label

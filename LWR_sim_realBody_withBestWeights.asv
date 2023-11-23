@@ -492,22 +492,18 @@ while (toc<240)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
             hold on
                 figure(f6),text(point(1),point(2),point(3), 'Real Point', 'FontSize', 6, 'HorizontalAlignment', 'left');
                 if mod(t0,10)
-                    save('sharedData.mat',  'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','f6','speed');
+                    save('sharedData7.mat', 'point', 'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','speed');
                 end
 
-                T= QtoP(Q_sampled(index,:),link);
+            T= QtoP(Q_sampled(index,:),link);
             Rotation = T(1:3,1:3);
              tran = T(1:3,4);
-                load('sharedVar2')
-                CalculatedPoint=Point_intersected;
-             contact_point_PF = Rotation*CalculatedPoint'+tran;
+            load('sharedVar2')
+            CalculatedPoint=Point_intersected;
+            contact_point_PF = Rotation*CalculatedPoint'+tran;
              disp('error Contact point calculated after CPF:')
              disp(vpa(norm(RealPointIntersectedWorldFrame(1:3)-contact_point_PF),4))
-             figure(f6),scatter3(CalculatedPoint(1),CalculatedPoint(2),CalculatedPoint(3),'p', 'filled' ,'SizeData', 50);
-            % Add a text label
-            textname="CalculatedPoint 5-th iteration";
-            figure(f6),text(CalculatedPoint(1),CalculatedPoint(2),CalculatedPoint(3), textname, 'FontSize', 6, 'HorizontalAlignment', 'left');
-             %disp(vpa(contact_point_PF',4))
+           %disp(vpa(contact_point_PF',4))
              
          %    ErrorAfterCPFWorldFrame(:)=abs(RealPointIntersectedWorldFrame(1:3)-contact_point_PF);
 

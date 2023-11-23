@@ -4,7 +4,8 @@
 % gamma: estimated external torque
 % estimated_cp: estimated contact point with the deterministic method used in
 %                the initialization phase
-function [chi,chi2, W_prime,generated_points] = cpf_RealPoint2(num_part, chi_prev, qq, gamma, estimated_cp,link,is_initialized,Meshes,triangles,generated_points,point,iteration,Niterations)
+function [chi,chi2, W_prime,generated_points] = cpf_RealPoint2(num_part, chi_prev, qqs, taus, estimated_cp,link,is_initialized,Meshes,triangles,generated_points,point,iteration,Niterations,J_w)
+    gamma=taus(end,:);
     Sigma = eye(7)*1;
     num_part_multiplicator=5;
     matrix = Meshes.Points(:,1:3,link);
@@ -124,16 +125,19 @@ end
                             continue;
                         end
                         
-                     Particles(:,num_part_multiplicator*(i-1)+j) = closest_point_to_triangle(triangles, closest_point(:,j)');
+                     [Particles(:,num_part_multiplicator*(i-1)+j),normal] = closest_point_to_triangle(triangles, closest_point(:,j)');
         
                         
-                    
-
-                             
-                    
-                         
-                   
-                        J_w = ComputePoint_withWrenches(qq,link);
+                        mu = tan(deg2rad(30));
+                        objectiveFunction = @(x) norm(gamma - J_w'*x)^2;
+                             % Constraints for the friction cone
+                        constraints = @(x) deal([], [norm(x(1:2)) - mu*dot(x(1:3), normal); -dot(x(1:3), normal)]);
+                        
+                         options = optimoptions('fmincon', 'Algorithm', 'sqp');
+                        x0 = pinv(J) * tau; % Starting point
+                        Fm = fmincon(objectiveFunction, x0, [], [], [], [], [], [], constraints, options);
+                        % Extracting F and m from the solution
+                        
                         [Fm]=pinv(J_w')*gamma';
                         fval = (skew_symmetric(Particles(:,num_part_multiplicator*(i-1)+j))*Fm(1:3)-Fm(4:6))'*(skew_symmetric(Particles(:,num_part_multiplicator*(i-1)+j))*Fm(1:3)-Fm(4:6));
                        
@@ -152,7 +156,7 @@ end
                     
                    % fval = fval + gamma*Sigma*gamma'
                                   
-                     W(1,num_part_multiplicator*(i-1)+j) = exp(-0.5*fval);
+                     W(1,num_part_multiplicator*(i-1)+j) = exp(-2*fval);
                      %disp(vpa(norm([0.0479, 0.0455, -0.0362]-Particles(:,num_part_multiplicator*i+j)'),3))
                     %disp( vpa((exp(-0.5*fval))',3))
                     hold on
@@ -170,6 +174,7 @@ end
     new_indeces2=resample2(num_part, W); %resampling
       chi = Particles(:, new_indeces);%maintain the best particles
      chi2 = Particles(:, new_indeces2);
+     size(chi)
      
 
     end

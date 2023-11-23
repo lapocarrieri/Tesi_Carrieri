@@ -27,7 +27,7 @@ firstTime=true;
 %% Hyperparameters to be set
 
 %% Now there is the matlab simulation of the movement
-load('initialization7.mat')
+load('initialization5.mat')
 tf=10;
 disp('The point in the actual frame is:')
 disp(vpa(point',3));
@@ -383,7 +383,7 @@ while (toc<240)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
                 error5 = [ExternalForceAppliedActualFrame;m]-wrenches5;
 %% Point calculation through f and m
                wrenches5=pinv(J_withwrenches')*Residual_calculated(index,:)';
-                error1 = [ExternalForceAppliedActualFrame;m]-wrenches5;
+                error1 = [ExternalForceAppliedActualFrame;m]-wrenches5
                
                %wrenches3=[ExternalForceAppliedActualFrame;m];
               f_i=wrenches5(1:3);
@@ -495,12 +495,12 @@ while (toc<240)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
                     save('sharedData7.mat', 'point', 'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','speed');
                 end
 
-                T= QtoP(Q_sampled(index,:),link);
+            T= QtoP(Q_sampled(index,:),link);
             Rotation = T(1:3,1:3);
              tran = T(1:3,4);
-                load('sharedVar2')
-                CalculatedPoint=Point_intersected;
-             contact_point_PF = Rotation*CalculatedPoint'+tran;
+            load('sharedVar2')
+            CalculatedPoint=Point_intersected;
+            contact_point_PF = Rotation*CalculatedPoint'+tran;
              disp('error Contact point calculated after CPF:')
              disp(vpa(norm(RealPointIntersectedWorldFrame(1:3)-contact_point_PF),4))
            %disp(vpa(contact_point_PF',4))
