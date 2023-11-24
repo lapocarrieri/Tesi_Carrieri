@@ -4,8 +4,8 @@
 % gamma: estimated external torque
 % estimated_cp: estimated contact point with the deterministic method used in
 %                the initialization phase
-function [chi,chi2, W_prime,generated_points] = cpf_RealPoint2(num_part, chi_prev, qqs, taus, estimated_cp,link,is_initialized,Meshes,triangles,generated_points,point,iteration,Niterations,J_w)
-    gamma=taus(end,:);
+function [chi,chi2, W_prime,generated_points] = cpf_RealPoint2(num_part, chi_prev, gamma, estimated_cp,link,is_initialized,Meshes,triangles,generated_points,point,iteration,Niterations,J_w)
+    
     Sigma = eye(7)*1;
     num_part_multiplicator=5;
     matrix = Meshes.Points(:,1:3,link);
@@ -134,7 +134,7 @@ end
                         constraints = @(x) deal([], [norm(x(1:2)) - mu*dot(x(1:3), normal); -dot(x(1:3), normal)]);
                         
                          options = optimoptions('fmincon', 'Algorithm', 'sqp');
-                        x0 = pinv(J) * tau; % Starting point
+                        x0 = pinv(J) * gamma; % Starting point
                         Fm = fmincon(objectiveFunction, x0, [], [], [], [], [], [], constraints, options);
                         % Extracting F and m from the solution
                         

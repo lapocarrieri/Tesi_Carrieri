@@ -72,14 +72,14 @@ samples=300; % samples to calculate the residual, in the other projects I think 
     
     q0=[0 0 0 0 0 0 0 0 0 0 0 0 0 0]; %initial configuration of the robot
     PlotMeshRobot; % plot of all the meshes that represent the manipulator
-    link=1;
+for link=1:7
 random_index = randi([1, 556]);
-random_vector = Meshes.Points(random_index, :,link);
+random_vector = Meshes.Points(452, :,link);
 
 random_noise = 0.005 * (2 * rand(1, 3) - 1);
 point = (random_vector(1:3))'
 ExternalForceAppliedActualFrame=([0.03 0.04 0.05]'-point)*100;
-
+ExternalForceAppliedActualFrame=[0.8236;0.1750;0.1636];
 S_fext =[0 -ExternalForceAppliedActualFrame(3) ExternalForceAppliedActualFrame(2) ; ExternalForceAppliedActualFrame(3) 0 -ExternalForceAppliedActualFrame(1) ; -ExternalForceAppliedActualFrame(2) ExternalForceAppliedActualFrame(1) 0 ];
 m=double(-S_fext*point(1:3))
 Point_intersected=[0 0 0];
@@ -182,8 +182,8 @@ f6=figure;
             gainE=100;
             GainInv=inv(eye(7)+gain*DeltaT) * gain ;
             GainEInv=inv(eye(1)+gainE*DeltaT) * gainE ;
-filename = ['initialization' num2str(link) '.mat'];
+filename = ['initializations' num2str(link) '.mat'];
 save(filename)
  
-
+end
 

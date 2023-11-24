@@ -2,8 +2,8 @@ clc;
 clear all;
 close all;
 indixes=1;
-           num_part=100;
-           Niterations=20;
+           num_part=40;
+           Niterations=10;
            load('initializations5.mat','Meshes','triangles','point','link')
                initialize=false;
                   addpath 'Dynamics'
@@ -52,8 +52,7 @@ chi3=zeros(3,num_part);
 while true
 
             load('sharedData7.mat');
-            Niterations=20;
-            num_part=100;
+            
             normBefore=norm(Point_intersectedActualFrame(1:3)-point)
             J_w = ComputePoint_withWrenches(Q_sampled(index,:),link);
        if link_collided(index) > 0
@@ -114,64 +113,43 @@ while true
         
             [chi,chi2,chi3, W_prime,generated_points] = cpf_RealPoint3(num_part, chi3, Residual_calculated(index,:), Point_intersectedActualFrame,link,is_initialized,Meshes,triangles,generated_points,point,i,Niterations,J_w);
             
-           Q_sampled(index,:)=[0 0 0 0 0 0 0];
+            Meshes
             
             is_initialized=true;
             T=QtoP(Q_sampled(index,:),link);
             chiWorldFrames=T*[chi3;ones(1,num_part)];
             figure(f6);
-                                    Points=matrix(:,1:4,link);
-             
-                        
-                        matrix=(T*Points')';       
-                        x = matrix(:, 1);
-                    y = matrix(:, 2);
-                    z = matrix(:, 3);
-                    
-                    % Plot the data
-                    addpath('Functions')
-                    plot3(x, y, z, 'b.');
-                    title('3D Plot');
-                    xlabel('X');
-                    ylabel('Y');
-                    zlabel('Z');
-                    axis equal;
-                    grid on;
-                    hold on
-            scatter3(chiWorldFrames(1,:),chiWorldFrames(2,:),chiWorldFrames(3,:),'y', 'filled' ,'SizeData', 25);
+            scatter3(chiWorldFrames(1,:),chiWorldFrames(2,:),chiWorldFrames(3,:),'y', 'filled' ,'SizeData', 100);
             hold on; % Keep the current plot
             realPoint=T*[point;1];
             scatter3(realPoint(1), realPoint(2), realPoint(3), 'r', 'filled'); % Plot the point
             text(realPoint(1), realPoint(2), realPoint(3), 'Real point'); % Add a label
-            prova = kuka.show(Q_sampled(index,:), 'visuals', 'on', 'collision', 'off');
-            prova.CameraPosition = [-2, 7, 6]; 
+            %prova = kuka.show(joints(i,1:7), 'visuals', 'on', 'collision', 'off');
+            %prova.CameraPosition = [-2, 7, 6]; 
         
             % Additional plotting (force vectors, etc.) can be added here
         
-            waitfor(rateCtrlObj);
+            %waitfor(rateCtrlObj);
                     
              CalculatedPoint=computeBari(chi);
              CalculatedPoint2=computeBari(chi2);
              CalculatedPoint3=computeBari(chi3);
-             CalculatedPointWorldFrame=T*[CalculatedPoint3';1];
-             scatter3(CalculatedPointWorldFrame(1), CalculatedPointWorldFrame(2), CalculatedPointWorldFrame(3), 'g', 'filled'); % Plot the point
-            text(CalculatedPointWorldFrame(1), CalculatedPointWorldFrame(2), CalculatedPointWorldFrame(3), 'Calcualted point'); % Add a label
               error1=norm(CalculatedPoint(1:3)'-point);
               error2=norm(CalculatedPoint2(1:3)'-point);
               error3=norm(CalculatedPoint3(1:3)'-point);
              %ErrorAfterCPF(:,ind)
-            
+
              
              save('sharedVar3','CalculatedPoint');
        
-            ErrorAfterCPF1(:,i)=norm(CalculatedPoint(1:3)'-point);
-             ErrorAfterCPF2(:,i)=norm(CalculatedPoint2(1:3)'-point);
-             ErrorAfterCPF3(:,i)=norm(CalculatedPoint3(1:3)'-point);
+            ErrorAfterCPF1(:,i)=norm(CalculatedPoint(1:3)'-point)
+             ErrorAfterCPF2(:,i)=norm(CalculatedPoint2(1:3)'-point)
+             ErrorAfterCPF3(:,i)=norm(CalculatedPoint3(1:3)'-point)
              
   
 
         pause(0.1);
-          
+
        end
                % Continuous execution code
               

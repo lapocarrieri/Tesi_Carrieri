@@ -93,7 +93,7 @@ H = [-1.1 pi/4 0 1.3*pi -1 0 0];
 
 prova = kuka.show(H,'visuals','on','collision','off');
 prova.CameraPosition = [-2,7,6]; 
-ho
+
 
                for link=1:7
                         T=QtoP(q0(1:7),link);
@@ -112,15 +112,13 @@ ho
                     axis equal;
                     grid on;
                     hold on
-                    
+                      prova.CameraPosition = [-2,7,6]; 
+            
+            prova = kuka.show(Q_sampled(i,1:7),'visuals','on','collision','off');
+            prova.CameraPosition = [-2,7,6]; 
                end
-              
+               hold off
         
-  prova.CameraPosition = [-2,7,6]; 
-    
-    prova = kuka.show(q0(1:7),'visuals','on','collision','off');
-    prova.CameraPosition = [-2,7,6]; 
-    waitfor(rateCtrlObj);
-    hold off
+
         return;
 %       

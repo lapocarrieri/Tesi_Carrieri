@@ -27,7 +27,7 @@ firstTime=true;
 %% Hyperparameters to be set
 
 %% Now there is the matlab simulation of the movement
-load('initializations5.mat')
+load('initialization5.mat')
 tf=10;
 disp('The point in the actual frame is:')
 disp(vpa(point',3));
@@ -80,6 +80,32 @@ d2p_ref =[   -0.0494    0.0077         0]';
         Kd=Kp;
         Point_intersected=Point_intersected';
         tic
+        kuka = importrobot('./models/kuka_lwr.urdf');
+
+addVisual(kuka.Base,"Mesh","./visual/base.STL")
+addVisual(kuka.Bodies{1},"Mesh","./visual/link_1.STL")
+addVisual(kuka.Bodies{2},"Mesh","./visual/link_2.STL")
+addVisual(kuka.Bodies{3},"Mesh","./visual/link_3.STL")
+addVisual(kuka.Bodies{4},"Mesh","./visual/link_4.STL")
+addVisual(kuka.Bodies{5},"Mesh","./visual/link_5.STL")
+addVisual(kuka.Bodies{6},"Mesh","./visual/link_6.STL")
+addVisual(kuka.Bodies{7},"Mesh","./visual/link_7.STL")
+
+kuka.Gravity = [0,0,-9.81];
+kuka.DataFormat = 'row';
+
+%EF=0.1*log10(ExternalForce+0.1)+0.1;
+         % Difference
+fig1 = figure;
+hold on
+
+rateCtrlObj = rateControl(10000);
+
+H = [-1.1 pi/4 0 1.3*pi -1 0 0];
+
+prova = kuka.show(H,'visuals','on','collision','off');
+prova.CameraPosition = [-2,7,6];
+hold on
 while (toc<300)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
      disp('time instant:')
      
@@ -491,10 +517,9 @@ while (toc<300)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
             % Add a text label
             hold on
                 figure(f6),text(point(1),point(2),point(3), 'Real Point', 'FontSize', 6, 'HorizontalAlignment', 'left');
-                if index>50
+                if mod(t0,10)
                     save('sharedData7.mat', 'point', 'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','speed');
-                mmm=1;
-                    end
+                end
 
             T= QtoP(Q_sampled(index,:),link);
             Rotation = T(1:3,1:3);
@@ -549,7 +574,12 @@ while (toc<300)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
         
 
 %% Collaboration
-    
+    figure(f1);
+    prova.CameraPosition = [-2,7,6]; 
+    prova = kuka.show(Q_sampled(index,1:7),'visuals','on','collision','off');
+    prova.CameraPosition = [-2,7,6]; 
+    waitfor(rateCtrlObj);
+    hold off
 end
 save("plotDatas")
 %Residual_calculated
