@@ -2,25 +2,16 @@ clc;
 clear all;
 close all;
 indixes=1;
-           num_part=100;
-           Niterations=20;
+           num_part=50;
+           Niterations=10;
            load('initializations5.mat','Meshes','triangles','point','link')
                initialize=false;
                   addpath 'Dynamics'
-                  f6=figure;
+                  f1=figure();
 
    addpath 'Functions'
-  figure(f6);
-            scatter3(point(1),point(2),point(3),'h', 'filled' ,'SizeData', 50);
-            hold on
-            
-                text(point(1),point(2),point(3), 'Real Point', 'FontSize', 6, 'HorizontalAlignment', 'left');
-             
+
        speed=1;
-       load("plotDatas")
-
-
-
 
          hold on
 
@@ -40,31 +31,64 @@ kuka.DataFormat = 'row';
 
 %EF=0.1*log10(ExternalForce+0.1)+0.1;
          % Difference
-
+%             prova = kuka.show(Q_sampled(index,:), 'visuals', 'on', 'collision', 'off');
+%             prova.CameraPosition = [-2, 7, 6]; 
 rateCtrlObj = rateControl(10000);
 
-H = [-1.1 pi/4 0 1.3*pi -1 0 0];
 
-prova = kuka.show(H,'visuals','on','collision','off');
-prova.CameraPosition = [-2,7,6]; 
-joints=Q_sampled;
+  f1 = figure;
+
 chi3=zeros(3,num_part);
 while true
-
-            load('sharedData7.mat');
+            
+            load('sharedData5.mat');
             Niterations=20;
             num_part=100;
             normBefore=norm(Point_intersectedActualFrame(1:3)-point)
             J_w = ComputePoint_withWrenches(Q_sampled(index,:),link);
        if link_collided(index) > 0
            disp('CPF:')
+    
            is_initialized=false;
            indixes=indixes+1;
-           
-             % Add a text label
+           T=QtoP(Q_sampled(index,:),link);
+                       Points=Meshes.Points(:,1:4,link);
+            zero_rows = all(Points == 0, 2);
+            
+            % Remove these rows
+            matrixes = Points(~zero_rows, :);
+                                    
+             
+                        
+                        matrix2=(T*matrixes')';       
+                        x = matrix2(:, 1);
+                    y = matrix2(:, 2);
+                    z = matrix2(:, 3);
+                    hold on
+                    % Plot the data
+                    addpath('Functions')
+                    
+                
             
        for i=1:speed:Niterations-1
-            
+
+           
+           hold off
+           %figure(f1),kuka.show(Q_sampled(index,:),'visuals','on','collision','off');
+           
+           figure(f1);
+          prova = kuka.show(Q_sampled(index,:), 'visuals', 'on', 'collision', 'off');
+          hold on
+          view(135, 69);
+            camzoom(5);
+           plot3(x, y, z, 'b.');
+           oggettiRobot = findobj(f1, 'Type', 'patch'); % Sostituisci 'patch' con il tipo corretto se necessario
+
+% Applica la trasparenza a questi oggetti
+for i = 1:length(oggettiRobot)
+    set(oggettiRobot(i), 'FaceAlpha', 0.5); % Imposta una trasparenza del 50%
+end
+           hold on
             %disp(i+'-th iteration for the CPF');
             %is_collided
             % starting Niterations before the end the contact particle
@@ -73,7 +97,7 @@ while true
             % iterations is high the code is very slow 
 
            
-           
+          
            
 
             %% plot the cylinder
@@ -114,37 +138,24 @@ while true
         
             [chi,chi2,chi3, W_prime,generated_points] = cpf_RealPoint3(num_part, chi3, Residual_calculated(index,:), Point_intersectedActualFrame,link,is_initialized,Meshes,triangles,generated_points,point,i,Niterations,J_w);
             
-           Q_sampled(index,:)=[0 0 0 0 0 0 0];
             
             is_initialized=true;
-            T=QtoP(Q_sampled(index,:),link);
+            
             chiWorldFrames=T*[chi3;ones(1,num_part)];
-            figure(f6);
-                                    Points=matrix(:,1:4,link);
-             
-                        
-                        matrix=(T*Points')';       
-                        x = matrix(:, 1);
-                    y = matrix(:, 2);
-                    z = matrix(:, 3);
-                    
-                    % Plot the data
-                    addpath('Functions')
-                    plot3(x, y, z, 'b.');
-                    title('3D Plot');
-                    xlabel('X');
-                    ylabel('Y');
-                    zlabel('Z');
-                    axis equal;
-                    grid on;
-                    hold on
-            scatter3(chiWorldFrames(1,:),chiWorldFrames(2,:),chiWorldFrames(3,:),'y', 'filled' ,'SizeData', 25);
-            hold on; % Keep the current plot
+            Initialppoint=T*Point_intersectedActualFrame;
+%            scatter3(Initialppoint(1),Initialppoint(2),Initialppoint(3),'g','filled');
+%             hold on
+%             text(Initialppoint(1),Initialppoint(2),Initialppoint(3),'InitialPoint');
+%             
+            scatter3(chiWorldFrames(1,:),chiWorldFrames(2,:),chiWorldFrames(3,:),'y', 'filled' ,'SizeData', 5);
+            
+            % Keep the current plot
             realPoint=T*[point;1];
+            
             scatter3(realPoint(1), realPoint(2), realPoint(3), 'r', 'filled'); % Plot the point
+            
             text(realPoint(1), realPoint(2), realPoint(3), 'Real point'); % Add a label
-            prova = kuka.show(Q_sampled(index,:), 'visuals', 'on', 'collision', 'off');
-            prova.CameraPosition = [-2, 7, 6]; 
+
         
             % Additional plotting (force vectors, etc.) can be added here
         
@@ -154,23 +165,24 @@ while true
              CalculatedPoint2=computeBari(chi2);
              CalculatedPoint3=computeBari(chi3);
              CalculatedPointWorldFrame=T*[CalculatedPoint3';1];
+             
              scatter3(CalculatedPointWorldFrame(1), CalculatedPointWorldFrame(2), CalculatedPointWorldFrame(3), 'g', 'filled'); % Plot the point
-            text(CalculatedPointWorldFrame(1), CalculatedPointWorldFrame(2), CalculatedPointWorldFrame(3), 'Calcualted point'); % Add a label
+            
+             text(CalculatedPointWorldFrame(1), CalculatedPointWorldFrame(2), CalculatedPointWorldFrame(3), 'Calcualted point'); % Add a label
               error1=norm(CalculatedPoint(1:3)'-point);
               error2=norm(CalculatedPoint2(1:3)'-point);
               error3=norm(CalculatedPoint3(1:3)'-point);
              %ErrorAfterCPF(:,ind)
             
-             
+             CalculatedPoint=CalculatedPoint3;
              save('sharedVar3','CalculatedPoint');
        
             ErrorAfterCPF1(:,i)=norm(CalculatedPoint(1:3)'-point);
              ErrorAfterCPF2(:,i)=norm(CalculatedPoint2(1:3)'-point);
              ErrorAfterCPF3(:,i)=norm(CalculatedPoint3(1:3)'-point);
              
-  
-
-        pause(0.1);
+        
+        
           
        end
                % Continuous execution code
@@ -178,10 +190,10 @@ while true
         % ...
            %figure(f6),scatter3(CalculatedPoint(1),CalculatedPoint(2),CalculatedPoint(3),'p', 'filled' ,'SizeData', 50);
             % Add a text label
-            textname="CalculatedPoint 5-th iteration";
+            %textname="CalculatedPoint 5-th iteration";
             %figure(f6),text(CalculatedPoint(1),CalculatedPoint(2),CalculatedPoint(3), textname, 'FontSize', 6, 'HorizontalAlignment', 'left');
             
             end
-        pause(0.1); % Prevents MATLAB from freezing
+         % Prevents MATLAB from freezing
             
 end

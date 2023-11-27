@@ -20,7 +20,7 @@ lb = ones(6, 1) * 1e-2; % Small positive lower bound
 ub = ones(6, 1)*0.95;
 
 % Perform optimization to minimize the objective function
-options = optimoptions('fmincon');
+options = optimoptions('fmincon', 'Display', 'off');
 [weights, fval] = fmincon(objective, initial_weights, [], [], [], [], lb, ub, [], options);
 
 % Display the optimized weights

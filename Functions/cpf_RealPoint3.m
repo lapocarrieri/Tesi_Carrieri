@@ -62,7 +62,7 @@ end
 
    % point_on_surface=estimated_cp(1:3);
     
-    hold off
+ 
     
     
 %     figure(figure),scatter3(point_on_surface(1),point_on_surface(2),point_on_surface(3),'g', 'filled' ,'SizeData', 100);
@@ -88,11 +88,11 @@ end
             for i=1:num_part
                     
                     closest_point = estimated_cp(1:3) +  normrnd(0, 0.5,3,1)*0.1;
-                    if isempty( closest_point_to_triangle2(matrix, closest_point'))
+                    if isempty( closest_point_to_triangle(matrix, closest_point'))
                             generated_points(:,i)=triangles(:,1,33);
                            
                     else
-                        generated_points(:,i) = (closest_point_to_triangle2(matrix, closest_point'))';
+                        generated_points(:,i) = (closest_point_to_triangle(matrix, closest_point'))';
                     end
                     
             end
@@ -101,7 +101,7 @@ end
               chi2(:,:) = generated_points;
               chi3(:,:) = generated_points;
       
-            scatter3(generated_points(:,1),generated_points(:,2),generated_points(:,3),'b', 'filled' ,'SizeData', 20);
+            %scatter3(generated_points(:,1),generated_points(:,2),generated_points(:,3),'b', 'filled' ,'SizeData', 20);
        
        
         
@@ -118,7 +118,6 @@ end
         X = zeros(3, num_part);                           %to store the points on the cylinder line   
         W = zeros(1, num_part);                           %to store the weigths
         W_prime = W;
-        figure();
         
         [Fm]=pinv(J_w')*gamma';
         for i = 1:num_part
@@ -126,12 +125,13 @@ end
             for j=1:num_part_multiplicator
                     m=randi([0, 1]) * 2 - 1;
                     closest_point(:,j) = chi_prev(:,i) + m .* rand(3,1)* 0.01*(Niterations-iteration);
-                        if isempty( closest_point_to_triangle2(matrix, closest_point(:,j)'))
-                            continue;
-                        end
-                        
-                     Particles(:,num_part_multiplicator*(i-1)+j) = closest_point_to_triangle2(matrix, closest_point(:,j)');
+                        if isempty( closest_point_to_triangle(matrix, closest_point(:,j)'))
+                            Particles(:,num_part_multiplicator*(i-1)+j) = closest_point_to_triangle2(matrix, closest_point(:,j)');
                      
+                        else
+                        
+                         Particles(:,num_part_multiplicator*(i-1)+j) = closest_point_to_triangle(matrix, closest_point(:,j)');
+                        end
                         
                         
 
@@ -166,19 +166,19 @@ end
         end
         %scatter3(Particles(1,:),Particles(2,:),Particles(3,:))
         W = W./sum(W);
-        figure();
-                hold on
-        for i = 1:size(Particles,2)
-            diffVector = Particles(:,i) - point;
-            normDifferences(i) = norm(diffVector);
-        end
-
-        % Plot the results
-        plot( W,normDifferences, 'o-');
-        xlabel('W');
-        ylabel('Norm of Differences');
-        title('Norm of Differences between Particles and W');
-        grid on;
+%         figure();
+%                 hold on
+%         for i = 1:size(Particles,2)
+%             diffVector = Particles(:,i) - point;
+%             normDifferences(i) = norm(diffVector);
+%         end
+% 
+%         %Plot the results
+%         plot( W,normDifferences, 'o-');
+%         xlabel('W');
+%         ylabel('Norm of Differences');
+%         title('Norm of Differences between Particles and W');
+%         grid on;
       % normalization 
      new_indeces=resample(num_part, W,num_part); %resampling
     new_indeces2=resample2(num_part, W); %resampling
@@ -190,7 +190,7 @@ end
 
     end
                 %scatter3(surface_points(:,1),surface_points(:,2),surface_points(:,3),'r', 'filled' ,'SizeData', 10);
-            hold on
+           
             %scatter3(point_on_surface(1),point_on_surface(2),point_on_surface(3),'g', 'filled' ,'SizeData', 40);
             
             

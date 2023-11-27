@@ -59,7 +59,6 @@ f6=figure;
             title('3D Point Cloud');
             grid on;
             CalculatedPoint=[0 0 0];
-            save('sharedVar2','CalculatedPoint');
             gainE=100;
             gain=gain*100000;
             GainInv=inv(eye(7)+gain*DeltaT) * gain ;
@@ -111,9 +110,7 @@ while (toc<300)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
     %figure(f1),scatter3(p_ref(1,1),p_ref(2,1),p_ref(3,1),'g','SizeData',20)
      %% Change in the code if we want that a certain point make a specifi trajectory and not the EE
    
-
-
-%         T = QtoP(q0(1:7),7);       
+     
 %     p = T(1:3,4)+[0; 0; 0.31];
 %    
 %   
@@ -248,7 +245,7 @@ while (toc<300)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
        %TauExternalForce =(transpose(J_force)*ExternalForceApplied)';
        %%force in world frame
        J_w = ComputePoint_withWrenches(q0(1:7),link);
-       TauExternalForce=(J_w'*[ExternalForceAppliedActualFrame;m])'
+       TauExternalForce=(J_w'*[ExternalForceAppliedActualFrame;m])';
        %return;
        
         
@@ -350,7 +347,7 @@ while (toc<300)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
      
         %% Point estimation - initialization of the contact particle filter
         
-        errorTorque=vpa(norm(r-TauExtForce(index,:)'),2)
+        errorTorque=vpa(norm(r-TauExtForce(index,:)'),2);
         
        Residual_calculated(index,:)=r;
        
@@ -367,13 +364,13 @@ while (toc<300)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
             if is_collided(index)==0
                 link_collided(index)=0;
             end
-            LinkInCollision=link_collided(index)
+            LinkInCollision=link_collided(index);
 
         %LINKK=link_collided(index)
 
         if is_collided(index) == 1 
-                J_withwrenches = ComputePoint_withWrenches(Q_sampled(index,:),LinkInCollision);
-                
+                %J_withwrenches = ComputePoint_withWrenches(Q_sampled(index,:),LinkInCollision);
+                J_withwrenches=J_w;
 
                 WeightCalculation;
                 W2=diag(weights);
@@ -383,7 +380,7 @@ while (toc<300)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
                 error5 = [ExternalForceAppliedActualFrame;m]-wrenches5;
 %% Point calculation through f and m
                wrenches5=pinv(J_withwrenches')*Residual_calculated(index,:)';
-                error1 = [ExternalForceAppliedActualFrame;m]-wrenches5
+                error1 = [ExternalForceAppliedActualFrame;m]-wrenches5;
                
                %wrenches3=[ExternalForceAppliedActualFrame;m];
               f_i=wrenches5(1:3);
@@ -396,7 +393,6 @@ while (toc<300)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 %                  y = radii*sin(pi/5) +  cnt(2);
 %                  z=height;
 %                  p_dc=[x, y,z]'
-            T= QtoP(Q_sampled(index,:),link);
             Rotation = T(1:3,1:3);
              tran = T(1:3,4);
 
@@ -482,25 +478,26 @@ while (toc<300)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
              Point_intersected=Point_intersected';
          end
          Point_intersectedActualFrame=double(inv(T)*[Point_intersected';1]);
-        disp('Point_intersectedActualFrame:')
-        disp(vpa(Point_intersectedActualFrame(1:3)',2))
-           ErrorBeforeCPF_ActualFrame=abs(Point_intersectedActualFrame(1:3)-point);
+        %disp('Point_intersectedActualFrame:')
+        %disp(vpa(Point_intersectedActualFrame(1:3)',2))
+           ErrorBeforeCPF_ActualFrame=norm(RealPointIntersectedWorldFrame(1:3)-Point_intersected');
           disp('error before CPF:')
-           disp(vpa(ErrorBeforeCPF_ActualFrame,3))
+           disp(vpa(norm(ErrorBeforeCPF_ActualFrame),3))
               figure(f6),scatter3(point(1),point(2),point(3),'h', 'filled' ,'SizeData', 50);
             % Add a text label
             hold on
                 figure(f6),text(point(1),point(2),point(3), 'Real Point', 'FontSize', 6, 'HorizontalAlignment', 'left');
-                if index>50
-                    save('sharedData7.mat', 'point', 'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','speed');
-                mmm=1;
-                    end
-
-            T= QtoP(Q_sampled(index,:),link);
+%                 if index>50
+%                     save('sharedData7.mat', 'point', 'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','speed');
+%                 mmm=1;
+%                    end
+            
+                save('sharedData5.mat', 'point', 'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','speed');
+            
             Rotation = T(1:3,1:3);
              tran = T(1:3,4);
-            load('sharedVar2')
-            CalculatedPoint=Point_intersected;
+            load('sharedVar3')
+            disp(norm(CalculatedPoint(1:3)'-point));
             contact_point_PF = Rotation*CalculatedPoint'+tran;
              disp('error Contact point calculated after CPF:')
              disp(vpa(norm(RealPointIntersectedWorldFrame(1:3)-contact_point_PF),4))

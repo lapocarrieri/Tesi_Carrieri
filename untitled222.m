@@ -1,12 +1,13 @@
 qq=qqs(end,:);
 
-for link=1:7
+for jj=1:100
+    link=4;
 figure();
 
-J_w = ComputePoint_withWrenches(qqs,link);
-F=[3;3;3];
+J_w = ComputePoint_withWrenches(Q_sampled(index,:),link);
+F=[0.8236;0.1750;0.1636];
 matrix=Meshes.Points(:,1:3,link);
-point=matrix(452,:)';
+point=matrix(jj*16,:)';
 m=-skew_symmetric(F)*point;
 gamma=(J_w'*[F;m])';
 for i = 1:size(matrix,1)
