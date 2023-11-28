@@ -4,7 +4,7 @@
 % gamma: estimated external torque
 % estimated_cp: estimated contact point with the deterministic method used in
 %                the initialization phase
-function [chi,chi2,chi3, W_prime,generated_points] = cpf_RealPoint3(num_part, chi_prev,  gamma, estimated_cp,link,is_initialized,Meshes,triangles,generated_points,point,iteration,Niterations,J_w)
+function [chi,chi2,chi3, W_prime,generated_points,Festimated] = cpf_RealPoint3(num_part, chi_prev,  gamma, estimated_cp,link,is_initialized,Meshes,triangles,generated_points,point,iteration,Niterations,J_w)
     Sigma = eye(7)*1;
     num_part_multiplicator=5;
     matrix = Meshes.Points(:,1:3,link);
@@ -179,7 +179,6 @@ end
 %         ylabel('Norm of Differences');
 %         title('Norm of Differences between Particles and W');
 %         grid on;
-      % normalization 
      new_indeces=resample(num_part, W,num_part); %resampling
     new_indeces2=resample2(num_part, W); %resampling
     new_indeces3=resample3(num_part, W); %resampling

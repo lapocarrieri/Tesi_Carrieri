@@ -2,9 +2,10 @@ clc;
 clear all;
 close all;
 indixes=1;
-num_part=50;
-Niterations=10;
-load('initializations5.mat','Meshes','triangles','point','link')
+num_part=30;
+Niterations=5;
+load('Initialization\initializations5.mat')
+close all
 initialize=false;
 addpath 'Dynamics'
 f1=figure();
@@ -34,14 +35,14 @@ kuka.DataFormat = 'row';
 %             prova = kuka.show(Q_sampled(index,:), 'visuals', 'on', 'collision', 'off');
 %             prova.CameraPosition = [-2, 7, 6];
 rateCtrlObj = rateControl(10000);
-
+error3=0.8;
 
 f1 = figure;
 
 chi3=zeros(3,num_part);
 while true
 
-    load('sharedData5.mat');
+    load('sharedDatas\sharedData5.mat');
     Niterations=20;
     num_part=100;
     normBefore=norm(Point_intersectedActualFrame(1:3)-point)
@@ -58,7 +59,7 @@ while true
         % Remove these rows
         matrixes = Points(~zero_rows, :);
 
-
+        
 
         matrix2=(T*matrixes')';
         x = matrix2(:, 1);
@@ -79,7 +80,17 @@ while true
             figure(f1);
             prova = kuka.show(Q_sampled(index,:), 'visuals', 'on', 'collision', 'off');
             hold on
+         
+            % Adding text in the bottom right corner of the figure
+ textString = sprintf('Force = [%0.3f, %0.3f, %0.3f]\npoint = [%0.3f, %0.3f, %0.3f]\nerror = %0.3f\nlink = %d', ...
+                     ExternalForceAppliedActualFrame(1), ExternalForceAppliedActualFrame(2), ExternalForceAppliedActualFrame(3), ...
+                     point(1), point(2), point(3), ...
+                     error3,link);
+
+text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignment', 'bottom', ...
+    'FontSize', 10, 'Color', 'black');
             view(135, 69);
+            
             camzoom(5);
             plot3(x, y, z, 'b.');
             oggettiRobot = findobj(f1, 'Type', 'patch'); % Sostituisci 'patch' con il tipo corretto se necessario
@@ -88,6 +99,7 @@ while true
             for i = 1:length(oggettiRobot)
                 set(oggettiRobot(i), 'FaceAlpha', 0.5); % Imposta una trasparenza del 50%
             end
+            
             hold on
             %disp(i+'-th iteration for the CPF');
             %is_collided
@@ -136,7 +148,7 @@ while true
 
             generated_points=zeros(3,num_part);
 
-            [chi,chi2,chi3, W_prime,generated_points] = cpf_RealPoint3(num_part, chi3, Residual_calculated(index,:), Point_intersectedActualFrame,link,is_initialized,Meshes,triangles,generated_points,point,i,Niterations,J_w);
+            [chi,chi2,chi3, W_prime,generated_points,Festimated] = cpf_RealPoint3(num_part, chi3, Residual_calculated(index,:), Point_intersectedActualFrame,link,is_initialized,Meshes,triangles,generated_points,point,i,Niterations,J_w);
 
 
             is_initialized=true;
@@ -175,7 +187,7 @@ while true
             %ErrorAfterCPF(:,ind)
 
             CalculatedPoint=CalculatedPoint3;
-            save('sharedVar3','CalculatedPoint');
+            save('sharedDatas\sharedVar3','CalculatedPoint','Festimated');
 
             ErrorAfterCPF1(:,i)=norm(CalculatedPoint(1:3)'-point);
             ErrorAfterCPF2(:,i)=norm(CalculatedPoint2(1:3)'-point);
