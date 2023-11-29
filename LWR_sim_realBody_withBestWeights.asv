@@ -39,22 +39,14 @@ f1=figure;
 figure(f1),scatter3(p_0(1), p_0(2), p_0(3), 'filled');
 set(f1, 'Name', 'End effector points');
 hold on
-% Assuming the center of the circle is on the x-axis for simplicity
-% You can choose any point at a distance of 'radius' from p_0 in the xy-plane
-center_x = p_0(1) + radius;
-center_y = p_0(2);
-center_z = p_0(3);  % Same z-coordinate as p_0
 
 % Create theta values
 theta = linspace(0, 2*pi, 100);
 
 % Circle in the xy-plane
-x = radius * cos(theta) + center_x;
-y = radius * sin(theta) + center_y;
-z = ones(size(x)) * center_z;  % constant z value
-
-% Plotting the circle in 3D
-
+x = radius * cos(theta) + p_0(1);
+y = radius * sin(theta) + p_0(2);
+z = ones(size(x)) * p_0(3);  % constant z value
 plot3(x, y, z);
 xlabel('X');
 ylabel('Y');
@@ -87,7 +79,6 @@ while (toc<3000)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
     disp(t0);
     index = index + 1;
     time(index)=t0;
-    
     q0(8:14) = acc * DeltaT + q0(8:14);
     q0(1:7)  = q0(1:7) + q0(8:14) * DeltaT ;
 
@@ -151,9 +142,10 @@ while (toc<3000)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 
     figure(f1),plot3(p(1), p(2), p(3), 'ro', 'MarkerSize',2);
     
-
+    Kp=0;
+    Kd=0;
     %% PD KINEMATIC
-    d2p_ref = 50*Kp * err_p + Kd * err_ddp + d2p_ff;
+    d2p_ref = Kp * err_p + Kd * err_ddp + d2p_ff;
     %d2p_ref = Kp * err_p + Kd * error_theta + d2p_ff;
     tspan =[t0,t0+DeltaT];
 
@@ -247,10 +239,6 @@ while (toc<3000)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
     %%force in world frame
     J_w = ComputePoint_withWrenches(q0(1:7),link);
     TauExternalForce=(J_w'*[ExternalForceAppliedActualFrame;m])';
-%     CalculatedPoint
-%     S_fext =[0 -ExternalForceAppliedActualFrame(3) ExternalForceAppliedActualFrame(2) ; ExternalForceAppliedActualFrame(3) 0 -ExternalForceAppliedActualFrame(1) ; -ExternalForceAppliedActualFrame(2) ExternalForceAppliedActualFrame(1) 0 ];
-%     m=double(-S_fext*point(1:3))
-%     TaucounterReaction = J_w'
     %return;
 
 
@@ -421,7 +409,7 @@ if is_collided(index) == 1
     Point_intersected = IntersectionPoint(line,link,Point_intersected(1:3),Meshes,T);
     disp('Point_intersected')
     if Point_intersected==[0 0 0]'
-        Point_intersected_actual_frame=closest_point_to_triangle3(triangles, p_dc');
+        Point_intersected_actual_frame=closest_point_to_triangle(triangles, p_dc');
         Point_intersected=T*[Point_intersected_actual_frame';1];
         disp('point initialiazation not optimal')
     end
@@ -498,7 +486,7 @@ disp(vpa(norm(ErrorBeforeCPF_ActualFrame),3))
 %                    end
 
 save('sharedDatas\sharedData5.mat', 'point', 'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','speed');
-CalculatedPoint=Point_intersectedActualFrame(1:3)';
+
 Rotation = T(1:3,1:3);
 tran = T(1:3,4);
 load('sharedDatas\sharedVar5')

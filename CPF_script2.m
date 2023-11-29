@@ -2,13 +2,12 @@ clc;
 clear all;
 close all;
 indixes=1;
-num_part=30;
+num_part=50;
 Niterations=5;
 load('Initialization\initializations5.mat')
 close all
 initialize=false;
 addpath 'Dynamics'
-f3=figure;
 f1=figure();
 
 addpath 'Functions'
@@ -148,17 +147,9 @@ text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignmen
             % (chi are the particles in respect to the actual frame)
 
             generated_points=zeros(3,num_part);
-            figure(f3);
-            
+            Point_intersectedActualFrame(1:3)=point+[0.015;0.03;-0.02];
             [chi,chi2,chi3, W_prime,generated_points,Festimated] = cpf_RealPoint3(num_part, chi3, Residual_calculated(index,:), Point_intersectedActualFrame,link,is_initialized,Meshes,triangles,generated_points,point,i,Niterations,J_w);
-              figure(f3);
-            scatter3(chi3(1), chi3(2), chi3(3), 'y', 'filled'); % Plot the point
 
-            text(chi(1), chi(2), chi(3), 'Calcualted point'); % Add a label
-             scatter3(point(1), point(2), point(3), 'r', 'filled'); % Plot the point
-
-            text(point(1), point(2), point(3), 'Real point'); % Add a label
-            figure(f1);
 
             is_initialized=true;
 
@@ -192,7 +183,7 @@ text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignmen
             text(CalculatedPointWorldFrame(1), CalculatedPointWorldFrame(2), CalculatedPointWorldFrame(3), 'Calcualted point'); % Add a label
             error1=norm(CalculatedPoint(1:3)'-point);
             error2=norm(CalculatedPoint2(1:3)'-point);
-            error3=norm(CalculatedPoint3(1:3)'-point);
+            error3=norm(CalculatedPoint3(1:3)'-point)
             %ErrorAfterCPF(:,ind)
 
             CalculatedPoint=CalculatedPoint3;

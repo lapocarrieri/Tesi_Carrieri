@@ -5,7 +5,7 @@
 % estimated_cp: estimated contact point with the deterministic method used in
 %                the initialization phase
 function [chi,chi2,chi3, W_prime,generated_points,Festimated] = cpf_RealPoint3(num_part, chi_prev,  gamma, estimated_cp,link,is_initialized,Meshes,triangles,generated_points,point,iteration,Niterations,J_w)
-Festimated=1;    
+    Festimated=1;
 Sigma = eye(7)*1;
     num_part_multiplicator=5;
     matrix = Meshes.Points(:,1:3,link);
@@ -87,14 +87,18 @@ end
 
            
             for i=1:num_part
+                    % Genera le prime due celle del vettore
+                    firstTwoCells = rand(1, 2) - 0.5; % rand(1, 2) genera un vettore 1x2 con valori in [0, 1], sottraiamo 0.5 per ottenere valori in [-0.5, 0.5]
                     
-                    closest_point = estimated_cp(1:3) +  normrnd(0, 0.5,3,1)*0.1;
-                    if isempty( closest_point_to_triangle2(matrix, closest_point'))
-                            generated_points(:,i)=triangles(:,1,33);
-                           
-                    else
-                        generated_points(:,i) = (closest_point_to_triangle2(matrix, closest_point'))';
-                    end
+                    % Genera la terza cella del vettore
+                    thirdCell = 0.6 * rand(1, 1) - 0.3; % 0.6*rand(1, 1) genera un valore in [0, 0.6], sottraiamo 0.3 per ottenere valori in [-0.3, 0.3]
+                    
+                    % Combina le celle per creare il vettore
+                    randomVector = [firstTwoCells, thirdCell];
+                    closest_point = estimated_cp(1:3) +  randomVector';%normrnd(0, 0.5,3,1)*0.1;
+                    
+                    generated_points(:,i) = (closest_point_to_triangle3(triangles, closest_point'))';
+                   
                     
             end
         
@@ -126,13 +130,9 @@ end
             for j=1:num_part_multiplicator
                     m=randi([0, 1]) * 2 - 1;
                     closest_point(:,j) = chi_prev(:,i) + m .* rand(3,1)* 0.01*(Niterations-iteration);
-                        if isempty( closest_point_to_triangle2(matrix, closest_point(:,j)'))
-                            Particles(:,num_part_multiplicator*(i-1)+j) = closest_point_to_triangle2(matrix, closest_point(:,j)');
-                     
-                        else
                         
-                         Particles(:,num_part_multiplicator*(i-1)+j) = closest_point_to_triangle2(matrix, closest_point(:,j)');
-                        end
+                         [Particles(:,num_part_multiplicator*(i-1)+j),normale] = closest_point_to_triangle3(triangles, closest_point(:,j)');
+                      
                         
                         
 
@@ -167,19 +167,19 @@ end
         end
         %scatter3(Particles(1,:),Particles(2,:),Particles(3,:))
         W = W./sum(W);
-%         figure();
-%                 hold on
-%         for i = 1:size(Particles,2)
-%             diffVector = Particles(:,i) - point;
-%             normDifferences(i) = norm(diffVector);
-%         end
-% 
-%         %Plot the results
-%         plot( W,normDifferences, 'o-');
-%         xlabel('W');
-%         ylabel('Norm of Differences');
-%         title('Norm of Differences between Particles and W');
-%         grid on;
+        figure();
+                hold on
+        for i = 1:size(Particles,2)
+            diffVector = Particles(:,i) - point;
+            normDifferences(i) = norm(diffVector);
+        end
+
+        %Plot the results
+        plot( W,normDifferences, 'o-');
+        xlabel('W');
+        ylabel('Norm of Differences');
+        title('Norm of Differences between Particles and W');
+        grid on;
      new_indeces=resample(num_part, W,num_part); %resampling
     new_indeces2=resample2(num_part, W); %resampling
     new_indeces3=resample3(num_part, W); %resampling
