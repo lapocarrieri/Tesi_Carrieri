@@ -5,7 +5,8 @@
 % estimated_cp: estimated contact point with the deterministic method used in
 %                the initialization phase
 function [chi,chi2,chi3, W_prime,generated_points,Festimated] = cpf_RealPoint3(num_part, chi_prev,  gamma, estimated_cp,link,is_initialized,Meshes,triangles,generated_points,point,iteration,Niterations,J_w)
-    Sigma = eye(7)*1;
+Festimated=1;    
+Sigma = eye(7)*1;
     num_part_multiplicator=5;
     matrix = Meshes.Points(:,1:3,link);
     nonZeroRows = any(matrix, 2);
@@ -88,11 +89,11 @@ end
             for i=1:num_part
                     
                     closest_point = estimated_cp(1:3) +  normrnd(0, 0.5,3,1)*0.1;
-                    if isempty( closest_point_to_triangle(matrix, closest_point'))
+                    if isempty( closest_point_to_triangle2(matrix, closest_point'))
                             generated_points(:,i)=triangles(:,1,33);
                            
                     else
-                        generated_points(:,i) = (closest_point_to_triangle(matrix, closest_point'))';
+                        generated_points(:,i) = (closest_point_to_triangle2(matrix, closest_point'))';
                     end
                     
             end
@@ -125,12 +126,12 @@ end
             for j=1:num_part_multiplicator
                     m=randi([0, 1]) * 2 - 1;
                     closest_point(:,j) = chi_prev(:,i) + m .* rand(3,1)* 0.01*(Niterations-iteration);
-                        if isempty( closest_point_to_triangle(matrix, closest_point(:,j)'))
+                        if isempty( closest_point_to_triangle2(matrix, closest_point(:,j)'))
                             Particles(:,num_part_multiplicator*(i-1)+j) = closest_point_to_triangle2(matrix, closest_point(:,j)');
                      
                         else
                         
-                         Particles(:,num_part_multiplicator*(i-1)+j) = closest_point_to_triangle(matrix, closest_point(:,j)');
+                         Particles(:,num_part_multiplicator*(i-1)+j) = closest_point_to_triangle2(matrix, closest_point(:,j)');
                         end
                         
                         
