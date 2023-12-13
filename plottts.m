@@ -1,5 +1,5 @@
 
-for j=1:100
+for j=1:index
     figure();
 J_w = ComputePoint_withWrenches(Q_sampled(j,:),link);
 [Fm]=pinv(J_w')*Residual_calculated(j,:)';

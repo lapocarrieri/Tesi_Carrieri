@@ -15,6 +15,7 @@
 clc;
 close all;
 clear all;
+linkforce=5;
 ss = 1;
 Sigma=0;
 n=10000;
@@ -27,7 +28,7 @@ addpath 'Functions'
 %% Hyperparameters to be set
 
 %% Now there is the matlab simulation of the movement
-load('Initialization\initializations5.mat')
+load(['Initialization\initializations', num2str(linkforce), '.mat'])
 tf=10;
 disp('The point in the actual frame is:')
 disp(vpa(point',3));
@@ -421,7 +422,7 @@ if is_collided(index) == 1
     Point_intersected = IntersectionPoint(line,link,Point_intersected(1:3),Meshes,T);
     disp('Point_intersected')
     if Point_intersected==[0 0 0]'
-        Point_intersected_actual_frame=closest_point_to_triangle3(triangles, p_dc');
+        Point_intersected_actual_frame=closest_point_to_triangle(triangles, p_dc');
         Point_intersected=T*[Point_intersected_actual_frame';1];
         disp('point initialiazation not optimal')
     end
@@ -497,11 +498,11 @@ disp(vpa(norm(ErrorBeforeCPF_ActualFrame),3))
 %                 mmm=1;
 %                    end
 
-save('sharedDatas\sharedData5.mat', 'point', 'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','speed');
+save(['sharedDatas\sharedData',num2str(linkforce)],'point', 'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','speed');
 CalculatedPoint=Point_intersectedActualFrame(1:3)';
 Rotation = T(1:3,1:3);
 tran = T(1:3,4);
-load('sharedDatas\sharedVar5')
+load(['sharedDatas\sharedVar', num2str(linkforce)])
 disp(norm(CalculatedPoint(1:3)'-point));
 contact_point_PF = Rotation*CalculatedPoint'+tran;
 disp('error Contact point calculated after CPF:')

@@ -4,30 +4,52 @@
 % disp('Closest point:');
 % disp(closest_point);
 function [closest_point,normale] = closest_point_to_triangle3(triangles, P)
-    closest_point = [];
-    min_distance = inf;
+   num_triangles = size(triangles, 3);
+    
+    % Reshape the triangles array to a 2D matrix where each row represents a vertex
+    triangles_reshaped = reshape(triangles, [], 3, 1);
 
-    for i = 1:size(triangles, 3)
-        triangle = triangles(:, :, i);
-        A = triangle(1, :);
-        B = triangle(2, :);
-        C = triangle(3, :);
-        distances(3*i-2) = norm(A-P);
-        distances(3*i-1) = norm(B-P);
-        distances(3*i) = norm(C-P);
+    % Replicate the point P to match the number of vertices
+    P_replicated = repmat(P, size(triangles_reshaped, 1), 1);
 
-    end
-    [~, minIndex] = min(distances);
-    n=ceil(minIndex/3);
-    triangle = triangles(:, :, n);
+    % Calculate distances in a vectorized manner
+    distances = vecnorm(triangles_reshaped - P_replicated, 2, 2);
+
+    % Find the minimum distance and corresponding triangle
+    [minDistance, minIndex] = min(distances);
+    triangle_index = ceil(minIndex / 3);
+    triangle = triangles(:, :, triangle_index);
     A = triangle(1, :);
     B = triangle(2, :);
     C = triangle(3, :);
+    
         % Calculate the normal vector of the triangle's plane
         normal = cross(B - A, C - A);
         normale = normal / norm(normal);
-
+        
         closest_point = closestPointOnTriangle(P, A, B, C);
+        % Plotting
+%         figure;
+%         hold on;
+%         grid on;
+%         
+%         % Plot the triangle
+%         line([A(1) B(1) C(1) A(1)], [A(2) B(2) C(2) A(2)], [A(3) B(3) C(3) A(3)], 'Color', 'b');
+%         
+%         % Plot point P
+%         plot3(P(1), P(2), P(3), 'r.', 'MarkerSize', 20);
+%         
+%         % Plot the normal vector
+%         % The normal will start at point P and will have the direction of 'normale'
+%         quiver3(P(1), P(2), P(3), normale(1), normale(2), normale(3), 0.5, 'Color', 'g');
+%         
+%         % Setting up the plot
+%         xlabel('X Axis');
+%         ylabel('Y Axis');
+%         zlabel('Z Axis');
+%         title('Triangle, Point P, and Normal Vector');
+%         axis equal;
+%         view(3);
           
     end
 function closestPoint = closestPointOnTriangle(P, A, B, C)

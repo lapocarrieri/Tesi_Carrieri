@@ -2,9 +2,10 @@ clc;
 clear all;
 close all;
 indixes=1;
-num_part=50;
+num_part=30;
 Niterations=5;
-load('Initialization\initializations5.mat')
+linkforce=5;
+load(['Initialization\initializations', num2str(linkforce), '.mat'])
 close all
 initialize=false;
 addpath 'Dynamics'
@@ -15,7 +16,7 @@ addpath 'Functions'
 speed=1;
 
 hold on
-
+f8=figure();
 kuka = importrobot('./models/kuka_lwr.urdf');
 
 addVisual(kuka.Base,"Mesh","./visual/base.STL")
@@ -42,9 +43,10 @@ f1 = figure;
 chi3=zeros(3,num_part);
 while true
 
-    load('sharedDatas\sharedData5.mat');
+    load(['sharedDatas\sharedData',num2str(linkforce), '.mat']);
     Niterations=20;
     num_part=100;
+    Point_intersectedActualFrame(1:3)=point;
     normBefore=norm(Point_intersectedActualFrame(1:3)-point)
     J_w = ComputePoint_withWrenches(Q_sampled(index,:),link);
     if link_collided(index) > 0
@@ -75,6 +77,10 @@ while true
 
 
             hold off
+            generated_points=zeros(3,num_part);
+            
+            [chi,chi2,chi3, W_prime,generated_points,Festimated] = cpf_RealPoint3(num_part, chi3, Residual_calculated(index,:), Point_intersectedActualFrame,link,is_initialized,Meshes,triangles,generated_points,point,i,Niterations,J_w);
+            
             %figure(f1),kuka.show(Q_sampled(index,:),'visuals','on','collision','off');
 
             figure(f1);
@@ -146,10 +152,7 @@ text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignmen
             %                the initialization phase
             % (chi are the particles in respect to the actual frame)
 
-            generated_points=zeros(3,num_part);
-            Point_intersectedActualFrame(1:3)=point+[0.015;0.03;-0.02];
-            [chi,chi2,chi3, W_prime,generated_points,Festimated] = cpf_RealPoint3(num_part, chi3, Residual_calculated(index,:), Point_intersectedActualFrame,link,is_initialized,Meshes,triangles,generated_points,point,i,Niterations,J_w);
-
+            figure(f1);
 
             is_initialized=true;
 
@@ -187,7 +190,7 @@ text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignmen
             %ErrorAfterCPF(:,ind)
 
             CalculatedPoint=CalculatedPoint3;
-            save('sharedDatas\sharedVar3','CalculatedPoint','Festimated');
+            save(['sharedDatas\sharedVar', num2str(linkforce)],'CalculatedPoint','Festimated');
 
             ErrorAfterCPF1(:,i)=norm(CalculatedPoint(1:3)'-point);
             ErrorAfterCPF2(:,i)=norm(CalculatedPoint2(1:3)'-point);

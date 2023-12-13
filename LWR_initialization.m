@@ -24,7 +24,7 @@ addpath 'Functions'
 
 
 
-
+f8=figure();
 nn=1000;
 cells0=cell(1,nn);
 matrix0 = zeros(nn, 7);
@@ -70,18 +70,18 @@ samples=300; % samples to calculate the residual, in the other projects I think 
 
 %% Initialization
 
-q0=[0 0 0 0 0 0 0 0 0 0 0 0 0 0]; %initial configuration of the robot
 PlotMeshRobot; % plot of all the meshes that represent the manipulator
+hold on
 for link=1:7
     random_index = randi([1, 556]);
-    random_vector = Meshes.Points(452, :,link);
+T = QtoP(q0(1:7),link);
+random_vector=matrix(77,:,link);
+
+
 
     random_noise = 0.005 * (2 * rand(1, 3) - 1);
-    point = (random_vector(1:3))'
-    ExternalForceAppliedActualFrame=([0.03 0.04 0.05]'-point)*100;
-    ExternalForceAppliedActualFrame=[0.8236;0.1750;0.1636];
-    S_fext =[0 -ExternalForceAppliedActualFrame(3) ExternalForceAppliedActualFrame(2) ; ExternalForceAppliedActualFrame(3) 0 -ExternalForceAppliedActualFrame(1) ; -ExternalForceAppliedActualFrame(2) ExternalForceAppliedActualFrame(1) 0 ];
-    m=double(-S_fext*point(1:3))
+    point = (random_vector(1:3))';
+    
     Point_intersected=[0 0 0];
     n = 7; %number of joints
     Bsampled = cell(1, 1000);
@@ -119,6 +119,7 @@ for link=1:7
 
     index = 1;
     %save the variables with a specific name
+    
     %filename="Force"+ExternalForceApplied(1)+ExternalForceApplied(2)+ExternalForceApplied(3)+"Point"+point(1)+point(2)+point(3)+"Link"+link+".mat";
     parameters;
 
@@ -141,49 +142,61 @@ for link=1:7
     % T_Q = QtoP(QQ(t),7);
     % diff(T,t);                                                                                                                                          cos(Q6(t))*(cos(Q2(t))*cos(Q4(t)) + cos(Q3(t))*sin(Q2(t))*sin(Q4(t))) + sin(Q6(t))*(cos(Q5(t))*(cos(Q2(t))*sin(Q4(t)) - 1.0*cos(Q3(t))*cos(Q4(t))*sin(Q2(t))) + sin(Q2(t))*sin(Q3(t))*sin(Q5(t)))
     % J5= jacobian(norm(-T_Q(1:3,3)),QQ(t));
-    for i=1:size(Meshes.ConnectivityList,1)
+    for i=1:size(MeshesConnectivityList{link},1)
         for j=1:3
-            triangles(:,j,i)=Meshes.Points(Meshes.ConnectivityList(i,j),1:3,link);
+            triangles(:,j,i)=Meshes.Points(MeshesConnectivityList{link}(i,j),1:3,link)';
         end
     end
-
+    [closest_point,normal] = closest_point_to_triangle3(triangles, point');
+    error=norm(closest_point-point');
+    normal = normal / norm(normal);
+    if normal(1) == 0
+        arbitrary_vector = [1; 0; 0];
+    else
+        arbitrary_vector = [0; 1; 0];
+    end
+    norm_force=10;
+        % Find a vector perpendicular to the normal
+    perpendicular_vector = cross(normal, arbitrary_vector);
+    perpendicular_vector = perpendicular_vector / norm(perpendicular_vector);
+    
+    % Rotate the perpendicular vector around the normal by the given angle
+    angle_rad = deg2rad(0);
+    rotation_matrix = axang2rotm([normal, angle_rad]);
+    rotated_vector = rotation_matrix * [perpendicular_vector'];
+    
+    % Scale the rotated vector to have the desired norm
+    ExternalForceAppliedActualFrame = norm_force * rotated_vector(1:3);
+   
+    S_fext =[0 -ExternalForceAppliedActualFrame(3) ExternalForceAppliedActualFrame(2) ; ExternalForceAppliedActualFrame(3) 0 -ExternalForceAppliedActualFrame(1) ; -ExternalForceAppliedActualFrame(2) ExternalForceAppliedActualFrame(1) 0 ];
+    m=double(-S_fext*point(1:3));
     %% Now there is the matlab simulation of the movement
+   
+    hold on
+    force_vector_4d=[ExternalForceAppliedActualFrame;1];
+    
+    
+    transformed_vector_3d = (T * force_vector_4d)/50;
+    pointWorld=T*[random_vector]';
+    pointworld2=matrix2(77,:,link)
+    scatter3(pointWorld(1), pointWorld(2), pointWorld(3),'b')
+
+    
+    scatter3(pointworld2(1), pointworld2(2), pointworld2(3),'r')
+    quiver3(pointWorld(1), pointWorld(2), pointWorld(3), transformed_vector_3d(1), transformed_vector_3d(2), transformed_vector_3d(3), 'r',LineWidth=0.1);
 
     disp('The point in the actual frame is:')
     disp(vpa(point',3));
-    close all
-
-
-    f1=figure;
-
-    %figure(f1),scatter3(p_0(1), p_0(2), p_0(3), 'filled');
-    set(f1, 'Name', 'End effector points');
-    xlabel('X');
-    ylabel('Y');
-    zlabel('Z');
-
-    f2=figure;
-    set(f2, 'Name', 'contact particle filter points');
-    xlabel('X');
-    ylabel('Y');
-    zlabel('Z');
-    f3=figure;
-    f4=figure;
-    f5=figure;
-
-    f6=figure;
-
-    xlabel('X');
-    ylabel('Y');
-    zlabel('Z');
-    title('3D Point Cloud');
-    grid on;
+    
     CalculatedPoint=[0 0 0];
     gainE=100;
     GainInv=inv(eye(7)+gain*DeltaT) * gain ;
     GainEInv=inv(eye(1)+gainE*DeltaT) * gainE ;
+
+    
     filename = ['initializations' num2str(link) '.mat'];
     save(filename)
 
 end
+
 

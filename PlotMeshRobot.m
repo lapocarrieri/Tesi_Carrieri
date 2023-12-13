@@ -1,10 +1,11 @@
 addpath 'Functions'
 figure();
-
+MeshesConnectivityList={};
 matrix=zeros(2000,4,7);
 link=1;
 STLlink = ['./visual/link_', num2str(link), '.STL'];
 [meshes, ~, ~, ~] = stlread(STLlink);
+MeshesConnectivityList{link}=meshes.ConnectivityList;
 R=[-1 0 0;0 0 1;0 -1 0];
 points=[-1 0 0 0;0 1 0 -0.2; 0 0 1 0;0 0 0 1]*[R*meshes.Points';ones(1,size(meshes.Points(:,1),1))];
 sizePoints(link)=size(points,2);
@@ -12,6 +13,7 @@ matrix(1:size(points,2),1:4,1) = points';
 link=2;
 STLlink = ['./visual/link_', num2str(link), '.STL'];
 [meshes, ~, ~, ~] = stlread(STLlink);
+MeshesConnectivityList{link}=meshes.ConnectivityList;
 R=eye(3);
 points=[R*meshes.Points';ones(1,size(meshes.Points(:,1),1))];
 sizePoints(link)=size(points,2);
@@ -19,6 +21,7 @@ matrix(1:size(points,2),1:4,2) = points';
 link=3;
 STLlink = ['./visual/link_', num2str(link), '.STL'];
 [meshes, ~, ~, ~] = stlread(STLlink);
+MeshesConnectivityList{link}=meshes.ConnectivityList;
 R=eye(3);
 R=[-1 0 0;0 0 -1;0 1 0];
 points=[1 0 0 0;0 1 0 0.2; 0 0 1 0;0 0 0 1]*[(R*meshes.Points');ones(1,size(meshes.Points(:,1),1))];
@@ -27,6 +30,7 @@ matrix(1:size(points,2),1:4,3) = points';
 link=4;
 STLlink = ['./visual/link_', num2str(link), '.STL'];
 [meshes, ~, ~, ~] = stlread(STLlink);
+MeshesConnectivityList{link}=meshes.ConnectivityList;
 R=eye(3);
 R=[-1 0 0;0 1 0;0 0 1];
 points=[(R*meshes.Points');ones(1,size(meshes.Points(:,1),1))];
@@ -35,6 +39,7 @@ matrix(1:size(points,2),1:4,4) = points';
 link=5;
 STLlink = ['./visual/link_', num2str(link), '.STL'];
 [meshes, ~, ~, ~] = stlread(STLlink);
+MeshesConnectivityList{link}=meshes.ConnectivityList;
 R=eye(3);
 R=[-1 0 0;0 0 1;0 -1 0];
 points=[1 0 0 0;0 1 0 -0.2; 0 0 1 0;0 0 0 1]*[(R*meshes.Points');ones(1,size(meshes.Points(:,1),1))];
@@ -43,6 +48,7 @@ matrix(1:sizePoints(link),1:4,5) = points';
 link=6;
 STLlink = ['./visual/link_', num2str(link), '.STL'];
 [meshes, ~, ~, ~] = stlread(STLlink);
+MeshesConnectivityList{link}=meshes.ConnectivityList;
 R=eye(3);
 R=[1 0 0;0 -1 0;0 0 -1];
 points=[(R*meshes.Points');ones(1,size(meshes.Points(:,1),1))];
@@ -51,6 +57,7 @@ matrix(1:sizePoints(link),1:4,6) = points';
 link=7;
 STLlink = ['./visual/link_', num2str(link), '.STL'];
 [meshes, ~, ~, ~] = stlread(STLlink);
+MeshesConnectivityList{link}=meshes.ConnectivityList;
 R=eye(3);
 R=[1 0 0;0 1 0;0 0 1];
 points=[1 0 0 0;0 1 0 0; 0 0 1 0;0 0 0 1]*[(R*meshes.Points');ones(1,size(meshes.Points(:,1),1))];
@@ -60,7 +67,7 @@ matrix(1:sizePoints(link),1:4,7) = points';
 
 M=matrix(1:max(sizePoints),:,:);
 Meshes.Points=double(M);
-Meshes.ConnectivityList=meshes.ConnectivityList;
+
 
 
 
@@ -92,7 +99,8 @@ H = [-1.1 pi/4 0 1.3*pi -1 0 0];
 prova = kuka.show(H,'visuals','on','collision','off');
 prova.CameraPosition = [-2,7,6];
 hold off
-q0(1:7)=[0 0 pi/2 pi/3 -pi/4 0 pi/8]
+q0=[0 0 pi/2 pi/3 -pi/4 0 pi/8 0 0 0 0 0 0 0]
+matrix2=zeros(2000,4);
 for link=1:7
     T=QtoP(q0(1:7),link);
     matrix2(:,:,link)=(T*matrix(:,:,link)')';

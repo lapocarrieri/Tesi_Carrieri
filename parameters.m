@@ -88,8 +88,6 @@ format long;
 
 
     % USING BUILDING WITH URDF
-    %% INITIAL CONFIGURATION
-    q0 = [-1.1,pi/4,pi,1.3*pi,-1,0,0,0,0,0,0,0,0,0];
     accs = zeros(1,7);
 
 
