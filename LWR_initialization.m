@@ -147,6 +147,10 @@ random_vector=matrix(77,:,link);
             triangles(:,j,i)=Meshes.Points(MeshesConnectivityList{link}(i,j),1:3,link)';
         end
     end
+
+
+% Label the axes
+
     [closest_point,normal] = closest_point_to_triangle3(triangles, point');
     error=norm(closest_point-point');
     normal = normal / norm(normal);
@@ -155,7 +159,7 @@ random_vector=matrix(77,:,link);
     else
         arbitrary_vector = [0; 1; 0];
     end
-    norm_force=10;
+    norm_force=20;
         % Find a vector perpendicular to the normal
     perpendicular_vector = cross(normal, arbitrary_vector);
     perpendicular_vector = perpendicular_vector / norm(perpendicular_vector);
@@ -178,7 +182,7 @@ random_vector=matrix(77,:,link);
     
     transformed_vector_3d = (T * force_vector_4d)/50;
     pointWorld=T*[random_vector]';
-    pointworld2=matrix2(77,:,link)
+    pointworld2=matrix2(77,:,link);
     scatter3(pointWorld(1), pointWorld(2), pointWorld(3),'b')
 
     
@@ -194,9 +198,8 @@ random_vector=matrix(77,:,link);
     GainEInv=inv(eye(1)+gainE*DeltaT) * gainE ;
 
     
-    filename = ['initializations' num2str(link) '.mat'];
+    filename = ['Initialization\initializations', num2str(link), '.mat']
     save(filename)
 
 end
-
-
+plotTriangles;

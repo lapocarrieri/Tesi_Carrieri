@@ -78,8 +78,8 @@ while true
 
             hold off
             generated_points=zeros(3,num_part);
-            
-            [chi,chi2,chi3, W_prime,generated_points,Festimated] = cpf_RealPoint3(num_part, chi3, Residual_calculated(index,:), Point_intersectedActualFrame,link,is_initialized,Meshes,triangles,generated_points,point,i,Niterations,J_w);
+            figure(f8);
+            [chi,chi2,chi3, W_prime,generated_points,Festimated] = cpf_RealPoint5(num_part, chi3, Residual_calculated(index,:), Point_intersectedActualFrame,link,is_initialized,Meshes,triangles,generated_points,point,i,Niterations,J_w);
             
             %figure(f1),kuka.show(Q_sampled(index,:),'visuals','on','collision','off');
 

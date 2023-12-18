@@ -119,24 +119,23 @@ end
         X = zeros(3, num_part);                           %to store the points on the cylinder line   
         W = zeros(1, num_part);                           %to store the weigths
         W_prime = W;
-        friction_coefficient = 0.1;
-        objectiveFunction = @(Fm) norm(J_w * Fm - gamma);
-        options = optimoptions('fmincon', 'Algorithm', 'interior-point');
-        angle_of_cone = atan(friction_coefficient);
+        
+        [Fm]=pinv(J_w')*gamma';
         for i = 1:num_part
 
             for j=1:num_part_multiplicator
                     m=randi([0, 1]) * 2 - 1;
                     closest_point(:,j) = chi_prev(:,i) + m .* rand(3,1)* 0.01*(Niterations-iteration);
+                        if isempty( closest_point_to_triangle3(triangles, closest_point(:,j)'))
+                            Particles(:,num_part_multiplicator*(i-1)+j) = closest_point_to_triangle3(triangles, closest_point(:,j)');
+                     
+                        else
                         
-                         [Particles(:,num_part_multiplicator*(i-1)+j),normal_vector] = closest_point_to_triangle3(triangles, closest_point(:,j)');
-                      
-                         frictionConeConstraint = @(Fm) deal([], acos(dot(Fm(1:3), normal_vector) / (norm(Fm(1:3)) * norm(normal_vector))) - angle_of_cone);
+                         Particles(:,num_part_multiplicator*(i-1)+j) = closest_point_to_triangle3(triangles, closest_point(:,j)');
+                        end
+                        
+                        
 
-    % Solve the optimization problem for the current normal
-                        Fm= fmincon(objectiveFunction, zeros(6, 1), [], [], [], [], [], [], frictionConeConstraint, options);
-
-                             
                              
                    % Particles(:,num_part_multiplicator*(i-1)+j)=point;
                          

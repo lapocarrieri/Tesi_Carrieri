@@ -67,7 +67,10 @@ matrix(1:sizePoints(link),1:4,7) = points';
 
 M=matrix(1:max(sizePoints),:,:);
 Meshes.Points=double(M);
-
+Meshes.ConnectivityList=zeros(3328,3,7);
+for link=1:7
+Meshes.ConnectivityList(1:size(MeshesConnectivityList{link},1),1:3,link)=MeshesConnectivityList{link};
+end
 
 
 

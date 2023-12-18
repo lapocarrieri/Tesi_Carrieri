@@ -419,7 +419,7 @@ if is_collided(index) == 1
     %plot3( RealPointIntersected(1), RealPointIntersected(2),RealPointIntersected(3), 'o', 'MarkerSize', 4, 'MarkerFaceColor', 'r', 'LineWidth', 2);
 
     hold on
-    Point_intersected = IntersectionPoint(line,link,Point_intersected(1:3),Meshes,T);
+    Point_intersected = IntersectionPoint(triangles,line.origin,line.direction);
     disp('Point_intersected')
     if Point_intersected==[0 0 0]'
         Point_intersected_actual_frame=closest_point_to_triangle(triangles, p_dc');
