@@ -154,7 +154,9 @@ while (toc<3000)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
     
 
     %% PD KINEMATIC
-    d2p_ref = 50*Kp * err_p + Kd * err_ddp + d2p_ff;
+    Kp=0.1;
+    Kd=0.1;
+    d2p_ref = Kp * err_p + Kd * err_ddp + d2p_ff;
     %d2p_ref = Kp * err_p + Kd * error_theta + d2p_ff;
     tspan =[t0,t0+DeltaT];
 
@@ -263,11 +265,11 @@ while (toc<3000)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
     %TauExternalForce=[1 0 0 0 0  0 0 ];
 
     %% COMPUTED TORQUE FL - dynamic model
-    TauFL = (g + S*q0(8:14)' + B * Uref')';  % this is the applied torque
+    TauFL = (g + S*q0(8:14)' + B * Uref')'-0.9*TauExternalForce;  % this is the applied torque
 
     Tau = TauFL+TauExternalForce; % this is the real tau applied
 
-    acc = (inv(B)* (Tau' - friction - S*q0(8:14)' - g))';
+    acc = (inv(B)* (Tau' - friction - S*q0(8:14)' - g))'
 
 
 
@@ -419,9 +421,9 @@ if is_collided(index) == 1
     %plot3( RealPointIntersected(1), RealPointIntersected(2),RealPointIntersected(3), 'o', 'MarkerSize', 4, 'MarkerFaceColor', 'r', 'LineWidth', 2);
 
     hold on
-    Point_intersected = IntersectionPoint(triangles,line.origin,line.direction);
+    Point_intersected = IntersectionPoint(line,link,Point_intersected(1:3),Meshes,T);
     disp('Point_intersected')
-    if Point_intersected==[0 0 0]'
+    if isempty(Point_intersected)
         Point_intersected_actual_frame=closest_point_to_triangle(triangles, p_dc');
         Point_intersected=T*[Point_intersected_actual_frame';1];
         disp('point initialiazation not optimal')
@@ -502,7 +504,7 @@ save(['sharedDatas\sharedData',num2str(linkforce)],'point', 'link_collided','ind
 CalculatedPoint=Point_intersectedActualFrame(1:3)';
 Rotation = T(1:3,1:3);
 tran = T(1:3,4);
-load(['sharedDatas\sharedVar', num2str(linkforce)])
+%load(['sharedDatas\sharedVar', num2str(linkforce)])
 disp(norm(CalculatedPoint(1:3)'-point));
 contact_point_PF = Rotation*CalculatedPoint'+tran;
 disp('error Contact point calculated after CPF:')

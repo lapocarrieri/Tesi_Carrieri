@@ -2,7 +2,7 @@ clc;
 clear all;
 close all;
 indixes=1;
-num_part=30;
+num_part=10;
 Niterations=5;
 linkforce=5;
 load(['Initialization\initializations', num2str(linkforce), '.mat'])
@@ -45,7 +45,7 @@ while true
 
     load(['sharedDatas\sharedData',num2str(linkforce), '.mat']);
     Niterations=20;
-    num_part=100;
+    num_part=10;
     Point_intersectedActualFrame(1:3)=point;
     normBefore=norm(Point_intersectedActualFrame(1:3)-point)
     J_w = ComputePoint_withWrenches(Q_sampled(index,:),link);
@@ -79,7 +79,7 @@ while true
             hold off
             generated_points=zeros(3,num_part);
             figure(f8);
-            [chi,chi2,chi3, W_prime,generated_points,Festimated] = cpf_RealPoint5(num_part, chi3, Residual_calculated(index,:), Point_intersectedActualFrame,link,is_initialized,Meshes,triangles,generated_points,point,i,Niterations,J_w);
+            [chi,chi2,chi3, W_prime,generated_points,Festimated] = cpf_RealPoint3(num_part, chi3, Residual_calculated(index,:), Point_intersectedActualFrame,link,is_initialized,Meshes,triangles,generated_points,point,i,Niterations,J_w);
             
             %figure(f1),kuka.show(Q_sampled(index,:),'visuals','on','collision','off');
 
@@ -179,13 +179,14 @@ text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignmen
             CalculatedPoint=computeBari(chi);
             CalculatedPoint2=computeBari(chi2);
             CalculatedPoint3=computeBari(chi3);
+
             CalculatedPointWorldFrame=T*[CalculatedPoint3';1];
 
             scatter3(CalculatedPointWorldFrame(1), CalculatedPointWorldFrame(2), CalculatedPointWorldFrame(3), 'g', 'filled'); % Plot the point
 
             text(CalculatedPointWorldFrame(1), CalculatedPointWorldFrame(2), CalculatedPointWorldFrame(3), 'Calcualted point'); % Add a label
-            error1=norm(CalculatedPoint(1:3)'-point);
-            error2=norm(CalculatedPoint2(1:3)'-point);
+            error1=norm(CalculatedPoint(1:3)'-point)
+            error2=norm(CalculatedPoint2(1:3)'-point)
             error3=norm(CalculatedPoint3(1:3)'-point)
             %ErrorAfterCPF(:,ind)
 

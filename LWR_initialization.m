@@ -188,7 +188,7 @@ random_vector=matrix(77,:,link);
     
     scatter3(pointworld2(1), pointworld2(2), pointworld2(3),'r')
     quiver3(pointWorld(1), pointWorld(2), pointWorld(3), transformed_vector_3d(1), transformed_vector_3d(2), transformed_vector_3d(3), 'r',LineWidth=0.1);
-
+    plotFrictionCone;
     disp('The point in the actual frame is:')
     disp(vpa(point',3));
     

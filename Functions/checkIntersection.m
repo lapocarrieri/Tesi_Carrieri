@@ -112,11 +112,6 @@ function [Point_intersected] = checkIntersection(vertices, line,PreviousPoint)
         
     end
 
-    
-
-    end    
-    if intersection1 == false
-            
         Point_intersected=[0 0 0];
     end
 

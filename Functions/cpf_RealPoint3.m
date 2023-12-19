@@ -167,7 +167,7 @@ end
         end
        hold off
         %scatter3(Particles(1,:),Particles(2,:),Particles(3,:))
-        W = W./sum(W);
+        W = W./sum(W)
         
                 
 %         for i = 1:size(Particles,2)
@@ -183,13 +183,13 @@ end
 %         grid on;
 %         
      new_indeces=resample(num_part, W,num_part); %resampling
-    new_indeces2=resample2(num_part, W); %resampling
+    new_indeces2=resample2(num_part, W)%resampling
     new_indeces3=resample3(num_part, W); %resampling
       chi = Particles(:, new_indeces);%maintain the best particles
-     chi2 = Particles(:, new_indeces2);
+     chi2 = Particles(:, new_indeces2)
      chi3= Particles(:, new_indeces3);
      
-
+    
     end
                 %scatter3(surface_points(:,1),surface_points(:,2),surface_points(:,3),'r', 'filled' ,'SizeData', 10);
            
