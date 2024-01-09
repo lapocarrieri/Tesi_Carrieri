@@ -4,7 +4,7 @@
 % gamma: estimated external torque
 % estimated_cp: estimated contact point with the deterministic method used in
 %                the initialization phase
-function [chi,chi2,chi3, W_prime,generated_points,Festimated] = cpf_RealPoint3(num_part, chi_prev,  gamma, estimated_cp,link,is_initialized,Meshes,triangles,generated_points,point,iteration,Niterations,J_w)
+function [chi2, W_prime,generated_points,Festimated] = cpf_RealPoint3(num_part, chi_prev,  gamma, estimated_cp,link,is_initialized,Meshes,triangles,generated_points,point,iteration,Niterations,J_w)
     Sigma = eye(7)*1;
     Festimated=1;
     num_part_multiplicator=5;
@@ -89,18 +89,16 @@ end
             for i=1:num_part
                     
                     closest_point = estimated_cp(1:3) +  normrnd(0, 0.5,3,1)*0.1;
-                    if isempty( closest_point_to_triangle(triangles, closest_point'))
+                    if isempty( closest_point_to_triangle3(triangles, closest_point'))
                             generated_points(:,i)=triangles(:,1,33);
                            
                     else
-                        generated_points(:,i) = (closest_point_to_triangle(triangles, closest_point'))';
+                        generated_points(:,i) = (closest_point_to_triangle3(triangles, closest_point'))';
                     end
                     
             end
         
-             chi(:,:) = generated_points;
               chi2(:,:) = generated_points;
-              chi3(:,:) = generated_points;
       
             %scatter3(generated_points(:,1),generated_points(:,2),generated_points(:,3),'b', 'filled' ,'SizeData', 20);
        
@@ -126,12 +124,12 @@ end
             for j=1:num_part_multiplicator
                     m=randi([0, 1]) * 2 - 1;
                     closest_point(:,j) = chi_prev(:,i) + m .* rand(3,1)* 0.01*(Niterations-iteration);
-                        if isempty( closest_point_to_triangle(triangles, closest_point(:,j)'))
-                            Particles(:,num_part_multiplicator*(i-1)+j) = closest_point_to_triangle(triangles, closest_point(:,j)');
+                        if isempty( closest_point_to_triangle3(triangles, closest_point(:,j)'))
+                            Particles(:,num_part_multiplicator*(i-1)+j) = closest_point_to_triangle3(triangles, closest_point(:,j)');
                      
                         else
                         
-                         Particles(:,num_part_multiplicator*(i-1)+j) = closest_point_to_triangle(triangles, closest_point(:,j)');
+                         Particles(:,num_part_multiplicator*(i-1)+j) = closest_point_to_triangle3(triangles, closest_point(:,j)');
                         end
                         
                         
@@ -158,16 +156,15 @@ end
                      W(1,num_part_multiplicator*(i-1)+j) = exp(-0.5*fval);
                      %disp(vpa(norm([0.0479, 0.0455, -0.0362]-Particles(:,num_part_multiplicator*i+j)'),3))
                     %disp( vpa((exp(-0.5*fval))',3))
-                    hold on
-
+                    
                     %plot(norm(point-Particles(:,num_part_multiplicator*(i-1)+j)'),(exp(-0.5*fval))','--rs','LineWidth',2,'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',10)
                      W_prime = W;
             end
              
         end
-       hold off
+       
         %scatter3(Particles(1,:),Particles(2,:),Particles(3,:))
-        W = W./sum(W)
+        W = W./sum(W);
         
                 
 %         for i = 1:size(Particles,2)
@@ -182,12 +179,9 @@ end
 %         title('Norm of Differences between Particles and W');
 %         grid on;
 %         
-     new_indeces=resample(num_part, W,num_part); %resampling
-    new_indeces2=resample2(num_part, W)%resampling
-    new_indeces3=resample3(num_part, W); %resampling
-      chi = Particles(:, new_indeces);%maintain the best particles
-     chi2 = Particles(:, new_indeces2)
-     chi3= Particles(:, new_indeces3);
+     
+    new_indeces2=resample2(num_part, W);%resampling
+     chi2 = Particles(:, new_indeces2);
      
     
     end

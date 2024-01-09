@@ -67,10 +67,6 @@ while true
         x = matrix2(:, 1);
         y = matrix2(:, 2);
         z = matrix2(:, 3);
-
-            x_actualFrame = matrixes(:, 1);
-            y_actualFrame = matrixes(:, 2);
-            z_actualFrame = matrixes(:, 3);
         hold on
         % Plot the data
         addpath('Functions')
@@ -201,12 +197,12 @@ text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignmen
             scatter3(chi2(1,:), chi2(2,:), chi2(3,:), 'y', 'filled', 'SizeData', 10);
             hold on
             % Plotting the hypothesized point before CPF in blue
-            scatter3(Point_intersectedActualFrame(1), Point_intersectedActualFrame(2), Point_intersectedActualFrame(3), 'cyan', 'filled');
+            scatter3(Point_intersectedActualFrame(1), Point_intersectedActualFrame(2), Point_intersectedActualFrame(3), 'b', 'filled');
             % Plotting the real point in red
             scatter3(point(1), point(2), point(3), 'r', 'filled');
             % Plotting the reference frame
-
-            plot3(x_actualFrame, y_actualFrame, z_actualFrame, 'b.');
+            
+            plot3(x, y, z, 'b.');
             % Adding a legend
             legend('Contact Particle Filter Points', 'Point Hypothesized before CPF', 'Real Point', 'Location', 'best');
             

@@ -46,7 +46,7 @@ end
 % Adjust spacing between subplots
 sgtitle('3D Mesh Plots for Links 1 to 7');
 % Assuming you have a matrix named 'triangles' of size 3x3x1098
-link=5;
+link=6;
         triangles = [];
         for i = 1:size(MeshesConnectivityList{link}, 1)
             for j = 1:3

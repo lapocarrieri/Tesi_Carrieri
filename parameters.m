@@ -38,7 +38,6 @@ format long;
     t0=0.0;
 
 
-    Ts = DeltaT;
 
     %Friction parameters
     friction_magnitude = 0.1;
@@ -62,9 +61,7 @@ format long;
     singular_values = [];
 
     %Joint trajectory
-    Tsample = linspace(0,tf + 50*Ts,(tf + 50*Ts - t0)/Ts)';
-    Xd = 0.6*[repmat(cos(Tsample),[1,6]),zeros(length(Tsample),1),repmat(-sin(Tsample),[1,6]),zeros(length(Tsample),1)];
-
+  
     %Initialization of initial state and array of joints positions-velocities
 
 

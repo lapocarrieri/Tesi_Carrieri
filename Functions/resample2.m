@@ -1,10 +1,11 @@
 %num_particles: number of particles
 %weights: weights associated to the particles
 function new_indices = resample2(num_particles, weights)
-    
+    weightssorted=sort(weights);
     cumulative_sum = cumsum(weightssorted);
     rand_indexs = rand(1,num_particles);
     new_indices = zeros(1,num_particles);
+    hold off
     
     for i=1:num_particles
         new_indices(i) = find(cumulative_sum>=rand_indexs(i), 1);
@@ -20,7 +21,7 @@ probability_distribution = weightssorted*100; % Uniform distribution
 
 
 % Plotting
-figure;
+
 
 % Plotting the cumulative sum
 yyaxis left;
@@ -41,6 +42,7 @@ for i = 1:length(new_indices)
 end
 
 % Plotting the probability distribution
+hold off
 yyaxis right;
 plot(probability_distribution, 'LineWidth', 0.1, 'Color', 'red'); % Thin red line for probability distribution
 ylabel('Probability Distribution');
@@ -48,7 +50,6 @@ ylabel('Probability Distribution');
 xlabel('Index');
 title('Cumulative Sum with Projections and Probability Distribution');
 grid on;
-hold off;
 
 
 end
