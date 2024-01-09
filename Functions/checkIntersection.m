@@ -105,8 +105,8 @@ function [Point_intersected] = checkIntersection(vertices, line,PreviousPoint)
 %         disp(vpa(triangle,2))
         
         %plot3(triangle(:,1),triangle(:,2),triangle(:,3))
-        disp('size vertices')
-        VerticesNonConsidered=size_vertices-size(vertices.ConnectivityList, 1)
+        % disp('size vertices')
+        % VerticesNonConsidered=size_vertices-size(vertices.ConnectivityList, 1);
 
         break;
         

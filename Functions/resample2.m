@@ -1,7 +1,7 @@
 %num_particles: number of particles
 %weights: weights associated to the particles
 function new_indices = resample2(num_particles, weights)
-    weightssorted=sort(weights)
+    
     cumulative_sum = cumsum(weightssorted);
     rand_indexs = rand(1,num_particles);
     new_indices = zeros(1,num_particles);

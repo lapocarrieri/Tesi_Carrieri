@@ -53,7 +53,7 @@ ExternalForceAppliedActualFrame=[2 4 3]';
 gain = 10*diag([100, 60, 160, 200, 120, 80, 125]); %gain for the residual calculation
 % real link subjected to the force
 radius=0.05; % radius of the circle that the End Effector(EE) of the robot must follow
-DeltaT = 0.01; % sampling time of the robot
+
 %q0(1:7)=[0,0,pi/2,0,0,0,0]; % q initialized, the real q initialized is in
 % parameters.m
 frequency = 1; %frequency*time is the angle of the point of the circle
@@ -194,8 +194,7 @@ random_vector=matrix(77,:,link);
     
     CalculatedPoint=[0 0 0];
     gainE=100;
-    GainInv=inv(eye(7)+gain*DeltaT) * gain ;
-    GainEInv=inv(eye(1)+gainE*DeltaT) * gainE ;
+ 
 
     
     filename = ['Initialization\initializations', num2str(link), '.mat']

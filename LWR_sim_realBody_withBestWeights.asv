@@ -15,6 +15,7 @@
 clc;
 close all;
 clear all;
+linkforce=6;
 ss = 1;
 Sigma=0;
 n=10000;
@@ -27,30 +28,64 @@ addpath 'Functions'
 %% Hyperparameters to be set
 
 %% Now there is the matlab simulation of the movement
-load('Initialization\initializations5.mat')
+load(['Initialization\initializations', num2str(linkforce), '.mat'])
 tf=10;
 disp('The point in the actual frame is:')
 disp(vpa(point',3));
 close all
 chi2 = zeros(3,20);
-
+%% Figures
+% f1 is the EE point actual point and reference point
 f1=figure;
 
 figure(f1),scatter3(p_0(1), p_0(2), p_0(3), 'filled');
 set(f1, 'Name', 'End effector points');
 hold on
+% Assuming the center of the circle is on the x-axis for simplicity
+% You can choose any point at a distance of 'radius' from p_0 in the xy-plane
+center_x = p_0(1) - radius;
+center_y = p_0(2);
+center_z = p_0(3);  % Same z-coordinate as p_0
 
 % Create theta values
 theta = linspace(0, 2*pi, 100);
 
 % Circle in the xy-plane
-x = radius * cos(theta) + p_0(1);
-y = radius * sin(theta) + p_0(2);
-z = ones(size(x)) * p_0(3);  % constant z value
+x = radius * cos(theta) + center_x;
+y = radius * sin(theta) + center_y;
+z = ones(size(x)) * center_z;  % constant z value
+
+% Plotting the circle in 3D
+
 plot3(x, y, z);
 xlabel('X');
 ylabel('Y');
 zlabel('Z');
+%f2 is the link collided and the line intersection to calculate the point
+%through pseudoinversion
+f2=figure;
+%f3 is the robot plot
+f3=figure();
+kuka = importrobot('./models/kuka_lwr.urdf');
+
+addVisual(kuka.Base,"Mesh","./visual/base.STL")
+addVisual(kuka.Bodies{1},"Mesh","./visual/link_1.STL")
+addVisual(kuka.Bodies{2},"Mesh","./visual/link_2.STL")
+addVisual(kuka.Bodies{3},"Mesh","./visual/link_3.STL")
+addVisual(kuka.Bodies{4},"Mesh","./visual/link_4.STL")
+addVisual(kuka.Bodies{5},"Mesh","./visual/link_5.STL")
+addVisual(kuka.Bodies{6},"Mesh","./visual/link_6.STL")
+addVisual(kuka.Bodies{7},"Mesh","./visual/link_7.STL")
+
+kuka.Gravity = [0,0,-9.81];
+kuka.DataFormat = 'row';
+%% Parameters
+%EF=0.1*log10(ExternalForce+0.1)+0.1;
+% Difference
+%             prova = kuka.show(Q_sampled(index,:), 'visuals', 'on', 'collision', 'off');
+%             prova.CameraPosition = [-2, 7, 6];
+rateCtrlObj = rateControl(10000);
+
 
 CalculatedPoint=[0 0 0];
 gainE=100;
@@ -68,17 +103,47 @@ sumSigma=0;
 
 index=index-1;
 acc=zeros(1,7);
-d2p_ref =[   -0.0494    0.0077         0]';
-Kp=[10,0,0;0,20,0;0,0,20];
+Kp=10*[10,0,0;0,20,0;0,0,20];
 Kd=Kp;
 Point_intersected=Point_intersected';
+Point_intersectedActualFrame=Point_intersected;
 tic
+ErrorBeforeCPF_ActualFrame=0;
 while (toc<3000)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
-    disp('time instant:')
+  
 
     disp(t0);
     index = index + 1;
+      figure(f3);
+      hold off
+      prova = kuka.show(Q_sampled(index,:), 'visuals', 'on', 'collision', 'off');
+            hold on
+          
+            % Adding text in the bottom right corner of the figure
+ textString = sprintf('Force = [%0.3f, %0.3f, %0.3f]\npoint = [%0.3f, %0.3f, %0.3f]\nerror = %0.3f\nlink = %d', ...
+                     Point_intersectedActualFrame(1), Point_intersectedActualFrame(2), Point_intersectedActualFrame(3), ...
+                     point(1), point(2), point(3), ...
+                     ErrorBeforeCPF_ActualFrame,link);
+
+text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignment', 'bottom', ...
+    'FontSize', 10, 'Color', 'black');
+            view(135, 69);
+            
+             camzoom(3);
+            % plot3(x, y, z, 'b.');
+            oggettiRobot = findobj(f1, 'Type', 'patch'); % Sostituisci 'patch' con il tipo corretto se necessario
+
+            % Applica la trasparenza a questi oggetti
+            % for i = 1:length(oggettiRobot)
+            %     set(oggettiRobot(i), 'FaceAlpha', 0.5); % Imposta una trasparenza del 50%
+            % end
+            
+            
+
+    disp('time instant:')
+
     time(index)=t0;
+    
     q0(8:14) = acc * DeltaT + q0(8:14);
     q0(1:7)  = q0(1:7) + q0(8:14) * DeltaT ;
 
@@ -100,7 +165,7 @@ while (toc<3000)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
     dp_ref(3,1) = dp_0(3);
     d2p_ff(3,1) = d2p_0(3);
     hold on
-    %figure(f1),scatter3(p_ref(1,1),p_ref(2,1),p_ref(3,1),'g','SizeData',20)
+    figure(f1),scatter3(p_ref(1,1),p_ref(2,1),p_ref(3,1),'g','SizeData',20)
     %% Change in the code if we want that a certain point make a specifi trajectory and not the EE
 
 
@@ -123,9 +188,9 @@ while (toc<3000)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 
     dJ = dJdt_LWR(q0(8),q0(9),q0(10),q0(11),q0(12),q0(13),q0(1),q0(2),q0(3),q0(4),q0(5),q0(6));
 
-    [~,S,~] = svd(J);
+   %[~,S,~] = svd(J);
 
-    sigma_trajectory = min(diag(S));
+    %sigma_trajectory = min(diag(S));
 
     dp = J * q0(8:14)';
 
@@ -140,12 +205,12 @@ while (toc<3000)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 
 
 
-    figure(f1),plot3(p(1), p(2), p(3), 'ro', 'MarkerSize',2);
+    %figure(f1),plot3(p(1), p(2), p(3), 'ro', 'MarkerSize',2);
     
-    Kp=0;
-    Kd=0;
+
     %% PD KINEMATIC
-    d2p_ref = Kp * err_p + Kd * err_ddp + d2p_ff;
+   
+    d2p_ref = Kp * err_p + Kd * err_dp + d2p_ff;
     %d2p_ref = Kp * err_p + Kd * error_theta + d2p_ff;
     tspan =[t0,t0+DeltaT];
 
@@ -175,7 +240,7 @@ while (toc<3000)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 
 
     %% PSEUDOINVERSE
-    Uref_task = (pinv(J) * (d2p_ref ))';
+    Uref_task = (J' * (d2p_ref ))';
 
 
     uopt = zeros(7,1);
@@ -239,6 +304,10 @@ while (toc<3000)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
     %%force in world frame
     J_w = ComputePoint_withWrenches(q0(1:7),link);
     TauExternalForce=(J_w'*[ExternalForceAppliedActualFrame;m])';
+%     CalculatedPoint
+%     S_fext =[0 -ExternalForceAppliedActualFrame(3) ExternalForceAppliedActualFrame(2) ; ExternalForceAppliedActualFrame(3) 0 -ExternalForceAppliedActualFrame(1) ; -ExternalForceAppliedActualFrame(2) ExternalForceAppliedActualFrame(1) 0 ];
+%     m=double(-S_fext*point(1:3))
+%     TaucounterReaction = J_w'
     %return;
 
 
@@ -247,14 +316,12 @@ while (toc<3000)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
     %          end
 
 
-    %TauExternalForce=[1 0 0 0 0  0 0 ];
-
     %% COMPUTED TORQUE FL - dynamic model
-    TauFL = (g + S*q0(8:14)' + B * Uref')';  % this is the applied torque
+    TauFL = (g + S*q0(8:14)' + B * Uref')'-0.9*TauExternalForce;  % this is the applied torque
 
     Tau = TauFL+TauExternalForce; % this is the real tau applied
 
-    acc = (inv(B)* (Tau' - friction - S*q0(8:14)' - g))';
+    acc = (inv(B)* (Tau' - friction - S*q0(8:14)' - g))'
 
 
 
@@ -294,11 +361,9 @@ while (toc<3000)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
     g_sampled{index}=g;
     h_sampled{index}=(S'*q0(8:14)'-g);
 
-    samples=50;
 
 
     %% Residual Calculation and Force and point reconstruction
-    % in order to have enough samples to calculate the residuals
 
     fprintf('Starting of the Residual calculation:\n')
 
@@ -340,7 +405,7 @@ end
 
 %% Point estimation - initialization of the contact particle filter
 
-errorTorque=vpa(norm(r-TauExtForce(index,:)'),2);
+%errorTorque=vpa(norm(r-TauExtForce(index,:)'),2);
 
 Residual_calculated(index,:)=r;
 
@@ -406,9 +471,11 @@ if is_collided(index) == 1
     %plot3( RealPointIntersected(1), RealPointIntersected(2),RealPointIntersected(3), 'o', 'MarkerSize', 4, 'MarkerFaceColor', 'r', 'LineWidth', 2);
 
     hold on
+    figure(f2);
+    hold off
     Point_intersected = IntersectionPoint(line,link,Point_intersected(1:3),Meshes,T);
     disp('Point_intersected')
-    if Point_intersected==[0 0 0]'
+    if isempty(Point_intersected)
         Point_intersected_actual_frame=closest_point_to_triangle(triangles, p_dc');
         Point_intersected=T*[Point_intersected_actual_frame';1];
         disp('point initialiazation not optimal')
@@ -430,9 +497,9 @@ if is_collided(index) == 1
     %
     %
     %                 error_initialization=abs(point(1:3)-PointRetrieved)
-    error_initialization=(vpa(norm(RealPointIntersected(1:3)-Point_intersected(1,:)'),3));
-    errors_initialization_sampled{index}=error_initialization;
-    Point_intersected_sampled{index}=Point_intersected;
+    %error_initialization=(vpa(norm(RealPointIntersected(1:3)-Point_intersected(1,:)'),3));
+    %errors_initialization_sampled{index}=error_initialization;
+    %Point_intersected_sampled{index}=Point_intersected;
 
     %                 ForcePoint=T*[Point_intersected;1] ;%point in frame 0
     %                 %ForcePointApplication(index,:)=ForcePoint(1:3);
@@ -485,15 +552,15 @@ disp(vpa(norm(ErrorBeforeCPF_ActualFrame),3))
 %                 mmm=1;
 %                    end
 
-save('sharedDatas\sharedData5.mat', 'point', 'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','speed');
-
+save(['sharedDatas2\sharedData',num2str(linkforce)],'point', 'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','speed');
+CalculatedPoint=Point_intersectedActualFrame(1:3)';
 Rotation = T(1:3,1:3);
 tran = T(1:3,4);
-load('sharedDatas\sharedVar5')
+%load(['sharedDatas\sharedVar', num2str(linkforce)])
 disp(norm(CalculatedPoint(1:3)'-point));
 contact_point_PF = Rotation*CalculatedPoint'+tran;
 disp('error Contact point calculated after CPF:')
-disp(vpa(norm(RealPointIntersectedWorldFrame(1:3)-contact_point_PF),4))
+%disp(vpa(norm(RealPointIntersectedWorldFrame(1:3)-contact_point_PF),4))
 %disp(vpa(contact_point_PF',4))
 
 %    ErrorAfterCPFWorldFrame(:)=abs(RealPointIntersectedWorldFrame(1:3)-contact_point_PF);
@@ -556,31 +623,31 @@ for i = 2:length(errors_initialization_sampled)
     plot(time(i), errors_initialization_sampled{i}, '.');
 end
 return;
-figure()
-plot(time(1:index-1), Q_sampled(1:index-1,:)', 'r', 'LineWidth', 2);
-figure()
-plot(time(1:index-1), QD_sampled(1:index-1,:)', 'r', 'LineWidth', 2);
-figure()
-plot(time(1:index-1), QDD_sampled(1:index-1,:)', 'r', 'LineWidth', 2);
-figure()
-plot(time(1:index-1), errors_initialization_sampled{1:index-1}, 'r', 'LineWidth', 2);
-
-saveas(f8, 'C:\Users\lapoc\Desktop\link4TauR.jpeg');
-plots;
-figure();
-for i = 2:length(errors_initialization_sampled)
-    hold on
-    plot(time(i), errors_initialization_sampled{i}, '.');
-end
-figure;
-plot(time, error_values, '-o'); % '-o' creates a line plot with circle markers
-xlabel('Time');
-ylabel('Error Value');
-title('Error Initialization Sampled Over Time');
-return;
-robot_plot;
-
-main_Carrieri;
+% figure()
+% plot(time(1:index-1), Q_sampled(1:index-1,:)', 'r', 'LineWidth', 2);
+% figure()
+% plot(time(1:index-1), QD_sampled(1:index-1,:)', 'r', 'LineWidth', 2);
+% figure()
+% plot(time(1:index-1), QDD_sampled(1:index-1,:)', 'r', 'LineWidth', 2);
+% figure()
+% plot(time(1:index-1), errors_initialization_sampled{1:index-1}, 'r', 'LineWidth', 2);
+% 
+% saveas(f8, 'C:\Users\lapoc\Desktop\link4TauR.jpeg');
+% plots;
+% figure();
+% for i = 2:length(errors_initialization_sampled)
+%     hold on
+%     plot(time(i), errors_initialization_sampled{i}, '.');
+% end
+% figure;
+% plot(time, error_values, '-o'); % '-o' creates a line plot with circle markers
+% xlabel('Time');
+% ylabel('Error Value');
+% title('Error Initialization Sampled Over Time');
+% return;
+% robot_plot;
+% 
+% main_Carrieri;
 
 
 

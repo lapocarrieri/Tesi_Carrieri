@@ -185,9 +185,9 @@ text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignmen
             scatter3(CalculatedPointWorldFrame(1), CalculatedPointWorldFrame(2), CalculatedPointWorldFrame(3), 'g', 'filled'); % Plot the point
 
             text(CalculatedPointWorldFrame(1), CalculatedPointWorldFrame(2), CalculatedPointWorldFrame(3), 'Calcualted point'); % Add a label
-            error1=norm(CalculatedPoint(1:3)'-point)
-            error2=norm(CalculatedPoint2(1:3)'-point)
-            error3=norm(CalculatedPoint3(1:3)'-point)
+            error1=norm(CalculatedPoint(1:3)'-point);
+            error2=norm(CalculatedPoint2(1:3)'-point);
+            error3=norm(CalculatedPoint3(1:3)'-point);
             %ErrorAfterCPF(:,ind)
 
             CalculatedPoint=CalculatedPoint3;

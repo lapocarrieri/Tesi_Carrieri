@@ -89,11 +89,11 @@ end
             for i=1:num_part
                     
                     closest_point = estimated_cp(1:3) +  normrnd(0, 0.5,3,1)*0.1;
-                    if isempty( closest_point_to_triangle3(triangles, closest_point'))
+                    if isempty( closest_point_to_triangle(triangles, closest_point'))
                             generated_points(:,i)=triangles(:,1,33);
                            
                     else
-                        generated_points(:,i) = (closest_point_to_triangle3(triangles, closest_point'))';
+                        generated_points(:,i) = (closest_point_to_triangle(triangles, closest_point'))';
                     end
                     
             end
@@ -126,12 +126,12 @@ end
             for j=1:num_part_multiplicator
                     m=randi([0, 1]) * 2 - 1;
                     closest_point(:,j) = chi_prev(:,i) + m .* rand(3,1)* 0.01*(Niterations-iteration);
-                        if isempty( closest_point_to_triangle3(triangles, closest_point(:,j)'))
-                            Particles(:,num_part_multiplicator*(i-1)+j) = closest_point_to_triangle3(triangles, closest_point(:,j)');
+                        if isempty( closest_point_to_triangle(triangles, closest_point(:,j)'))
+                            Particles(:,num_part_multiplicator*(i-1)+j) = closest_point_to_triangle(triangles, closest_point(:,j)');
                      
                         else
                         
-                         Particles(:,num_part_multiplicator*(i-1)+j) = closest_point_to_triangle3(triangles, closest_point(:,j)');
+                         Particles(:,num_part_multiplicator*(i-1)+j) = closest_point_to_triangle(triangles, closest_point(:,j)');
                         end
                         
                         
