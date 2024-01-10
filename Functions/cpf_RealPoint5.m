@@ -4,7 +4,7 @@
 % gamma: estimated external torque
 % estimated_cp: estimated contact point with the deterministic method used in
 %                the initialization phase
-function [chi2, W_prime,generated_points,Festimated,f4] = cpf_RealPoint3(num_part, chi_prev,  gamma, estimated_cp,link,is_initialized,Meshes,triangles,generated_points,point,iteration,Niterations,J_w,f4,f2)
+function [chi2, W_prime,generated_points,Festimated,f4] = cpf_RealPoint5(num_part, chi_prev,  gamma, estimated_cp,link,is_initialized,Meshes,triangles,generated_points,point,iteration,Niterations,J_w,f4,f2)
     Sigma = eye(7)*1;
     Festimated=1;
     num_part_multiplicator=5;
@@ -118,22 +118,54 @@ end
         W = zeros(1, num_part);                           %to store the weigths
         W_prime = W;
         
-        [Fm]=pinv(J_w')*gamma';
+        % Assuming you have these variables defined: J_w, gamma, normal_vector, mu
+        Fm_unconstrained = pinv(J_w') * gamma';
+        mu=0.1;
+        % Objective function
+        objFunc = @(Fm) norm(Fm - Fm_unconstrained)^2;
+        
+        
+        
+        % Initial guess (can be the unconstrained solution or another appropriate starting point)
+        initial_guess = Fm_unconstrained;
+        
+        % Optimization options, such as algorithm selection, can be set here
+        % Solver options with relaxed tolerances
+        options = optimoptions('fmincon', 'Algorithm', 'sqp', ...
+                               'MaxFunctionEvaluations', 1e4, ...
+                               'StepTolerance', 1e-8, ...
+                               'OptimalityTolerance', 1e-4, ... % Relaxed optimality tolerance
+                               'ConstraintTolerance', 1e-4);   % Relaxed constraint tolerance
+
+        
+        % Solve the optimization problem
+        
+
         for i = 1:num_part
 
             for j=1:num_part_multiplicator
                     m=randi([0, 1]) * 2 - 1;
-                    closest_point(:,j) = chi_prev(:,i) + m .* rand(3,1)* 0.005*(Niterations-iteration);
-                  Particles(:,num_part_multiplicator*(i-1)+j) = closest_point_to_triangle3(triangles, closest_point(:,j)');
-                       
+                    closest_point(:,j) = chi_prev(:,i) + m .* rand(3,1)* 0.01*(Niterations-iteration);
+                        [ Particles(:,num_part_multiplicator*(i-1)+j) ,normal_vector]= closest_point_to_triangle3(triangles, closest_point(:,j)');
+                     
+                        
                         
                         
 
                              
                    % Particles(:,num_part_multiplicator*(i-1)+j)=point;
                          
-                   
-                        
+                   % Non-linear constraints
+                    nonlcon = @(Fm) deal( [norm(Fm(1:3) - dot(Fm(1:3), normal_vector) * normal_vector) - mu * abs(dot(Fm(1:3), normal_vector));
+                         5 - norm(Fm(1:3)); 
+                         norm(Fm(1:3)) - 15], ...
+                        []);
+                    % Attach the custom output function to the options
+                options.OutputFcn = @customOutputFunction;
+                
+                % Solve the optimization problem
+                [Fm, ~, ~, ~, ~, best_solution] = fmincon(objFunc, initial_guess, [], [], [], [], [], [], nonlcon, options);
+
                         fval = (skew_symmetric(Particles(:,num_part_multiplicator*(i-1)+j))*Fm(1:3)-Fm(4:6))'*(skew_symmetric(Particles(:,num_part_multiplicator*(i-1)+j))*Fm(1:3)-Fm(4:6));
 
 
@@ -148,19 +180,34 @@ end
                     
                     %disp([fval,Particles(:,num_part_multiplicator*(i-1)+j)'])
                                   
-                     W(1,num_part_multiplicator*(i-1)+j) = exp(-2*fval);
+                     W(1,num_part_multiplicator*(i-1)+j) = exp(-0.5*fval);
                      %disp(vpa(norm([0.0479, 0.0455, -0.0362]-Particles(:,num_part_multiplicator*i+j)'),3))
                     %disp( vpa((exp(-0.5*fval))',3))
-                    
+                    hold on
+
                     %plot(norm(point-Particles(:,num_part_multiplicator*(i-1)+j)'),(exp(-0.5*fval))','--rs','LineWidth',2,'MarkerEdgeColor','k','MarkerFaceColor','g','MarkerSize',10)
                      W_prime = W;
             end
              
         end
-       
+       hold off
         %scatter3(Particles(1,:),Particles(2,:),Particles(3,:))
         W = W./sum(W);
-        figure(f4);
+        
+                
+%         for i = 1:size(Particles,2)
+%             diffVector = Particles(:,i) - point;
+%             normDifferences(i) = norm(diffVector);
+%         end
+% 
+%         %Plot the results
+%         plot( W,normDifferences, 'o-');
+%         xlabel('W');
+%         ylabel('Norm of Differences');
+%         title('Norm of Differences between Particles and W');
+%         grid on;
+%         
+figure(f4);
 
 
        hold off
@@ -204,4 +251,22 @@ end
 end
 
 
+% Custom output function to capture the best feasible solution
+function [stop, opt] = customOutputFunction(x, optimValues, state)
+    persistent bestx bestfval
+    stop = false;
 
+    if isempty(bestx)
+        bestx = x;
+        bestfval = optimValues.fval;
+    elseif optimValues.fval < bestfval
+        bestx = x;
+        bestfval = optimValues.fval;
+    end
+
+    if strcmp(state, 'done')
+        opt = bestx; % Return the best solution found
+    else
+        opt = [];
+    end
+end

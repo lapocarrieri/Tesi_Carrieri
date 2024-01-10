@@ -2,9 +2,9 @@ clc;
 clear all;
 close all;
 indixes=1;
-num_part=30;
-Niterations=5;
-linkforce=6;
+num_part=50;
+Niterations=10;
+linkforce=5;
 load(['Initialization\initializations', num2str(linkforce), '.mat'])
 close all
 initialize=false;
@@ -39,12 +39,14 @@ rateCtrlObj = rateControl(10000);
 error3=0.8;
 
 f3=figure();
+f4=figure();
 
 chi2=zeros(3,num_part);
 while true
 
     load(['sharedDatas\sharedData',num2str(linkforce), '.mat']);
-   
+   num_part=50;
+    Niterations=10;
     
     Point_intersectedActualFrame(1:3)=point;
     normBefore=norm(Point_intersectedActualFrame(1:3)-point)
@@ -82,11 +84,12 @@ while true
             
             hold off
             generated_points=zeros(3,num_part);
-            figure(f2);
-            [chi2, W_prime,generated_points,Festimated] = cpf_RealPoint3(num_part, chi2, Residual_calculated(index,:), Point_intersectedActualFrame,link,is_initialized,Meshes,triangles,generated_points,point,i,Niterations,J_w);
+            
+            [chi2, W_prime,generated_points,Festimated,f4] = cpf_RealPoint5(num_part, chi2, Residual_calculated(index,:), Point_intersectedActualFrame,link,is_initialized,Meshes,triangles,generated_points,point,i,Niterations,J_w,f4,f2);
             
 
             figure(f1);
+            hold off
             prova = kuka.show(Q_sampled(index,:), 'visuals', 'on', 'collision', 'off');
             hold on
          
@@ -99,8 +102,7 @@ while true
 text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignment', 'bottom', ...
     'FontSize', 10, 'Color', 'black');
             view(135, 69);
-            
-            camzoom(5);
+            camzoom(5)
             plot3(x, y, z, 'b.');
             oggettiRobot = findobj(f1, 'Type', 'patch'); % Sostituisci 'patch' con il tipo corretto se necessario
 
@@ -109,7 +111,6 @@ text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignmen
                 set(oggettiRobot(ii), 'FaceAlpha', 0.5); % Imposta una trasparenza del 50%
             end
             
-            hold on
             %disp(i+'-th iteration for the CPF');
             %is_collided
             % starting Niterations before the end the contact particle
@@ -156,7 +157,7 @@ text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignmen
             % (chi are the particles in respect to the actual frame)
 
             figure(f1);
-
+            hold on
             is_initialized=true;
 
             chiWorldFrames=T*[chi2;ones(1,num_part)];
@@ -178,9 +179,28 @@ text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignmen
             % Additional plotting (force vectors, etc.) can be added here
 
             waitfor(rateCtrlObj);
-
+                
             CalculatedPoint2=computeBari(chi2);
+            % Assuming chi2 is a 100x3 matrix representing 100 3D vectors
+            numClusters = 2; % We want to find 2 barycenters
+            
+            % Use k-means to cluster the points into two groups
+            [idx, centroids] = kmeans(chi2', numClusters);
+            
+            % The centroids variable now contains the two barycenters.
+            % Each row of centroids is a barycenter of one cluster.
+            
+            % Display the barycenters
+            disp('Barycenter 1:');
+            disp(centroids(1, :));
+            
+            disp('Barycenter 2:');
+            disp(centroids(2, :));
 
+
+            err=norm(centroids(2, :)'-point)
+            err=norm(centroids(1, :)'-point)
+            ErrorAfterCPF2(:,i)=norm(CalculatedPoint2(1:3)'-point)
             CalculatedPointWorldFrame=T*[CalculatedPoint2';1];
 
             scatter3(CalculatedPointWorldFrame(1), CalculatedPointWorldFrame(2), CalculatedPointWorldFrame(3), 'g', 'filled'); % Plot the point
@@ -194,33 +214,39 @@ text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignmen
             save(['sharedDatas\sharedVar', num2str(linkforce)],'CalculatedPoint','Festimated');
 
             ErrorAfterCPF2(:,i)=norm(CalculatedPoint2(1:3)'-point)
+             
+figure(f3);
+hold off
+% Plotting the contact particle filter points in yellow
+scatter3(chi2(1,:), chi2(2,:), chi2(3,:), 'b', 'filled', 'SizeData', 10);
+hold on
+% Plotting the hypothesized point before CPF in smaller blue points
+scatter3(Point_intersectedActualFrame(1), Point_intersectedActualFrame(2), Point_intersectedActualFrame(3), 'm', 'filled', 'SizeData', 5); % Reduced size here
+% Plotting the real point in red
+scatter3(point(1), point(2), point(3), 'r', 'filled');
+% Plotting CalculatedPoint2 in black
+scatter3(CalculatedPoint2(1), CalculatedPoint2(2), CalculatedPoint2(3), 'k', 'filled');
+% Plotting the reference frame
+plot3(x_actualFrame, y_actualFrame, z_actualFrame, 'y.');
+% Adding a legend
+% Adding a legend
+num_part_str = ['Number of Particles: ', num2str(num_part)]; % Convert num_part to string
+N_iterations_str = ['Number of Iterations: ', num2str(Niterations)]; % Convert N_iterations to string
+legend('Contact Particle Filter Points', 'Point Hypothesized before CPF', 'Real Point', 'CalculatedPoint2', num_part_str, N_iterations_str, 'Location', 'best');
 
-            figure(f3);
-            hold off
-            % Plotting the contact particle filter points in yellow
-            scatter3(chi2(1,:), chi2(2,:), chi2(3,:), 'y', 'filled', 'SizeData', 10);
-            hold on
-            % Plotting the hypothesized point before CPF in blue
-            scatter3(Point_intersectedActualFrame(1), Point_intersectedActualFrame(2), Point_intersectedActualFrame(3), 'cyan', 'filled');
-            % Plotting the real point in red
-            scatter3(point(1), point(2), point(3), 'r', 'filled');
-            % Plotting the reference frame
 
-            plot3(x_actualFrame, y_actualFrame, z_actualFrame, 'b.');
-            % Adding a legend
-            legend('Contact Particle Filter Points', 'Point Hypothesized before CPF', 'Real Point', 'Location', 'best');
-            
-            % Adding a title
-            title('3D Scatter Plot of Points and Hypotheses');
-            
-            % Optionally, you can add labels for axes
-            xlabel('X-axis');
-            ylabel('Y-axis');
-            zlabel('Z-axis');
-            
-            % Adjust view and other plot properties as needed
-            view(3); % for a 3D view
-            grid on; % to enable grid
+% Adding a title
+title('3D Scatter Plot of Points and Hypotheses');
+
+% Optionally, you can add labels for axes
+xlabel('X-axis');
+ylabel('Y-axis');
+zlabel('Z-axis');
+
+% Adjust view and other plot properties as needed
+view(3); % for a 3D view
+grid on; % to enable grid
+axis equal;
         end
         % Continuous execution code
 

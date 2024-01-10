@@ -75,7 +75,7 @@ hold on
 for link=1:7
     random_index = randi([1, 556]);
 T = QtoP(q0(1:7),link);
-random_vector=matrix(77,:,link);
+random_vector=matrix(430,:,link);
 
 
 
@@ -166,9 +166,9 @@ random_vector=matrix(77,:,link);
     perpendicular_vector = perpendicular_vector / norm(perpendicular_vector);
     
     % Rotate the perpendicular vector around the normal by the given angle
-    angle_rad = deg2rad(0);
-    rotation_matrix = axang2rotm([normal, angle_rad]);
-    rotated_vector = rotation_matrix * [perpendicular_vector'];
+    angle_rad = deg2rad(20);
+    rotation_matrix = axang2rotm([normal', angle_rad]);
+    rotated_vector = rotation_matrix * [perpendicular_vector];
     
     % Scale the rotated vector to have the desired norm
     ExternalForceAppliedActualFrame = norm_force * rotated_vector(1:3);
@@ -183,13 +183,13 @@ random_vector=matrix(77,:,link);
     
     transformed_vector_3d = (T * force_vector_4d)/50;
     pointWorld=T*[random_vector]';
-    pointworld2=matrix2(77,:,link);
+    pointworld2=matrix2(430,:,link);
     scatter3(pointWorld(1), pointWorld(2), pointWorld(3),'b')
 
     
     scatter3(pointworld2(1), pointworld2(2), pointworld2(3),'r')
     quiver3(pointWorld(1), pointWorld(2), pointWorld(3), transformed_vector_3d(1), transformed_vector_3d(2), transformed_vector_3d(3), 'r',LineWidth=0.1);
-    plotFrictionCone;
+    %plotFrictionCone;
     disp('The point in the actual frame is:')
     disp(vpa(point',3));
     

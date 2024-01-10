@@ -15,7 +15,7 @@
 clc;
 close all;
 clear all;
-linkforce=6;
+linkforce=5;
 ss = 1;
 Sigma=0;
 n=10000;

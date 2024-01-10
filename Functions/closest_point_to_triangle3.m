@@ -19,37 +19,56 @@ function [closest_point,normale] = closest_point_to_triangle3(triangles, P)
     [minDistance, minIndex] = min(distances);
     triangle_index = ceil(minIndex / 3);
     triangle = triangles(:, :, triangle_index);
-    A = triangle(1, :);
-    B = triangle(2, :);
-    C = triangle(3, :);
+    A = triangle(:,1);
+    B = triangle(:,2);
+    C = triangle(:,3);
     
         % Calculate the normal vector of the triangle's plane
         normal = cross(B - A, C - A);
         normale = normal / norm(normal);
         
-        closest_point = closestPointOnTriangle(P, A, B, C);
-        % Plotting
+        closest_point = closestPointOnTriangle(P, A', B', C');
+        
 %         figure;
-%         hold on;
-%         grid on;
-%         
-%         % Plot the triangle
-%         line([A(1) B(1) C(1) A(1)], [A(2) B(2) C(2) A(2)], [A(3) B(3) C(3) A(3)], 'Color', 'b');
-%         
+% hold on;
+% grid on;
+% axis equal;
+% 
+% % Iterate through each triangle and plot
+% for i = 1:size(triangles, 3)
+%     % Extract the i-th triangle
+%     triangle = triangles(:, :, i);
+% 
+%     % Plot each edge of the triangle
+%     % Adding the first point again at the end to close the triangle
+%     plot3([triangle(1, 1), triangle(1, 2)], ...
+%           [triangle(2, 1), triangle(2, 2)], ...
+%           [triangle(3, 1), triangle(3, 2)], 'b');
+%     plot3([triangle(1, 2), triangle(1, 3)], ...
+%           [triangle(2, 2), triangle(2, 3)], ...
+%           [triangle(3, 2), triangle(3, 3)], 'b');
+%     plot3([triangle(1, 3), triangle(1, 1)], ...
+%           [triangle(2, 3), triangle(2, 1)], ...
+%           [triangle(3, 3), triangle(3, 1)], 'b');
+% end
+% 
+% 
+%         line([A(1) B(1) C(1) A(1)], [A(2) B(2) C(2) A(2)], [A(3) B(3) C(3) A(3)], 'Color', 'y', 'MarkerSize', 20);
+% 
 %         % Plot point P
-%         plot3(P(1), P(2), P(3), 'r.', 'MarkerSize', 20);
-%         
+%         plot3(P(1), P(2), P(3), 'k.', 'MarkerSize', 20);
+%         plot3(closest_point(1), closest_point(2), closest_point(3), 'r.', 'MarkerSize', 20); 
+% 
 %         % Plot the normal vector
 %         % The normal will start at point P and will have the direction of 'normale'
-%         quiver3(P(1), P(2), P(3), normale(1), normale(2), normale(3), 0.5, 'Color', 'g');
-%         
+%         % quiver3(P(1), P(2), P(3), normale(1), normale(2), normale(3), 0.5, 'Color', 'g');
+% 
 %         % Setting up the plot
 %         xlabel('X Axis');
 %         ylabel('Y Axis');
 %         zlabel('Z Axis');
 %         title('Triangle, Point P, and Normal Vector');
 %         axis equal;
-%         view(3);
           
     end
 function closestPoint = closestPointOnTriangle(P, A, B, C)
