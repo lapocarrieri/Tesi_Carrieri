@@ -54,6 +54,7 @@ R=[1 0 0;0 -1 0;0 0 -1];
 points=[(R*meshes.Points');ones(1,size(meshes.Points(:,1),1))];
 sizePoints(link)=size(points,2);
 matrix(1:sizePoints(link),1:4,6) = points';
+
 link=7;
 STLlink = ['./visual/link_', num2str(link), '.STL'];
 [meshes, ~, ~, ~] = stlread(STLlink);

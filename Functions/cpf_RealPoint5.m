@@ -135,17 +135,19 @@ end
                                'MaxFunctionEvaluations', 1e4, ...
                                'StepTolerance', 1e-8, ...
                                'OptimalityTolerance', 1e-4, ... % Relaxed optimality tolerance
-                               'ConstraintTolerance', 1e-4);   % Relaxed constraint tolerance
+                               'ConstraintTolerance', 1e-4,'Display', 'off');   % Relaxed constraint tolerance
 
         
         % Solve the optimization problem
-        
-
+        b = log(0.001 / 0.2) / (Niterations - 1);
+        Range=0.1 * exp(b * (iteration - 1))
+        iteration
+        PointCalculatedPreviousStep=(computeBari(chi_prev))';
         for i = 1:num_part
 
             for j=1:num_part_multiplicator
                     m=randi([0, 1]) * 2 - 1;
-                    closest_point(:,j) = chi_prev(:,i) + m .* rand(3,1)* 0.01*(Niterations-iteration);
+                    closest_point(:,j) = chi_prev(:,j) + m .* rand(3,1)*Range ;
                         [ Particles(:,num_part_multiplicator*(i-1)+j) ,normal_vector]= closest_point_to_triangle3(triangles, closest_point(:,j)');
                      
                         
@@ -155,11 +157,17 @@ end
                              
                    % Particles(:,num_part_multiplicator*(i-1)+j)=point;
                          
-                   % Non-linear constraints
-                    nonlcon = @(Fm) deal( [norm(Fm(1:3) - dot(Fm(1:3), normal_vector) * normal_vector) - mu * abs(dot(Fm(1:3), normal_vector));
-                         5 - norm(Fm(1:3)); 
-                         norm(Fm(1:3)) - 15], ...
-                        []);
+                 % Desired values for Fm(1:3)
+desired_Fm = [-18.719195367712636; -6.683139679045226; 2.219767739151341];
+
+% Tolerance for each component of Fm(1:3)
+tolerance = [0.5; 0.5; 0.5]; % Adjust this as needed
+
+% Non-linear constraints
+nonlcon = @(Fm) deal( ...
+    norm(Fm(1:3) - dot(Fm(1:3), normal_vector) * normal_vector) - mu * abs(dot(Fm(1:3), normal_vector)), ...
+    max(abs(Fm(1:3) - desired_Fm) - tolerance, 0) ...
+);
                     % Attach the custom output function to the options
                 options.OutputFcn = @customOutputFunction;
                 
@@ -195,48 +203,17 @@ end
         W = W./sum(W);
         
                 
-%         for i = 1:size(Particles,2)
-%             diffVector = Particles(:,i) - point;
-%             normDifferences(i) = norm(diffVector);
-%         end
-% 
-%         %Plot the results
-%         plot( W,normDifferences, 'o-');
-%         xlabel('W');
-%         ylabel('Norm of Differences');
-%         title('Norm of Differences between Particles and W');
-%         grid on;
-%         
-figure(f4);
-
-
-       hold off
-        
-        matrix=Meshes.Points(:,1:3,link);
-        
-        m=-skew_symmetric([12.700401450564340;0;-15.449912718022170])*point;
-        gamma=(J_w'*[[12.700401450564340;0;-15.449912718022170];m])';
-        for i = 1:size(matrix,1)
-        POINTT=matrix(i,:)';
-        
-        
-        [Fm]=pinv(J_w')*gamma';
-        
-        fval = (skew_symmetric(POINTT)*Fm(1:3)-Fm(4:6))'*(skew_symmetric(POINTT)*Fm(1:3)-Fm(4:6));
-        
-        W2(1,i) = exp(-2*fval);
-        diffVector = POINTT - point;
-        normDifferences(i) = norm(diffVector);
+        for i = 1:size(Particles,2)
+            diffVector = Particles(:,i) - point;
+            normDifferences(i) = norm(diffVector);
         end
-        % Plot the results
-   
-        plot( W2,normDifferences, 'o');
-        xlabel('W');
-        ylabel('Norm of Differences');
-        title('Norm of Differences between Particles and W');
-        grid on;
+
+        
+%PlotWeights;
      figure(f2);
-    new_indeces2=resample2(num_part, W);%resampling
+      PlotWeights;
+    new_indeces2=resample3(num_part, W);%resampling
+
      chi2 = Particles(:, new_indeces2);
      
     

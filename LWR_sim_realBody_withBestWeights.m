@@ -308,6 +308,7 @@ text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignmen
     %%force in world frame
     J_w = ComputePoint_withWrenches(q0(1:7),link);
     TauExternalForce=(J_w'*[ExternalForceAppliedActualFrame;m])';
+    
 %     CalculatedPoint
 %     S_fext =[0 -ExternalForceAppliedActualFrame(3) ExternalForceAppliedActualFrame(2) ; ExternalForceAppliedActualFrame(3) 0 -ExternalForceAppliedActualFrame(1) ; -ExternalForceAppliedActualFrame(2) ExternalForceAppliedActualFrame(1) 0 ];
 %     m=double(-S_fext*point(1:3))

@@ -26,9 +26,10 @@ function [closest_point,normale] = closest_point_to_triangle3(triangles, P)
         % Calculate the normal vector of the triangle's plane
         normal = cross(B - A, C - A);
         normale = normal / norm(normal);
-        
+
+  
         closest_point = closestPointOnTriangle(P, A', B', C');
-        
+        normale = processNormal(normale, closest_point', triangles);      
 %         figure;
 % hold on;
 % grid on;
@@ -135,4 +136,76 @@ function closestPoint = closestPointOnTriangle(P, A, B, C)
     v = vb * denom;
     w = vc * denom;
     closestPoint = A + AB * v + AC * w;
+end
+function intersect = isIntersecting(normale, point, triangle)
+    % Constants
+    EPSILON = 1e-6;
+
+    % Triangle vertices
+    v1 = triangle(:,1);
+    v2 = triangle(:,2);
+    v3 = triangle(:,3);
+
+    % Edge vectors
+    edge1 = v2 - v1;
+    edge2 = v3 - v1;
+
+    % Calculate determinant
+    h = cross(normale, edge2);
+    a = dot(edge1, h);
+
+    % Ray is parallel to triangle
+    if (a > -EPSILON && a < EPSILON)
+        intersect = false;
+        return;
+    end
+
+    % Calculate barycentric coordinates
+    f = 1.0 / a;
+    s = point - v1;
+    u = f * dot(s, h);
+
+    if (u < 0.0 || u > 1.0)
+        intersect = false;
+        return;
+    end
+
+    q = cross(s, edge1);
+    v = f * dot(normale, q);
+
+    if (v < 0.0 || u + v > 1.0)
+        intersect = false;
+        return;
+    end
+
+    % At this stage, we can compute t to find out where
+    % the intersection point is on the line
+    t = f * dot(edge2, q);
+
+    if (t > EPSILON) % Ray intersection
+        intersect = true;
+    else % Line intersection but not a ray intersection
+        intersect = false;
+    end
+end
+function normale = processNormal(normale, closest_point, triangles)
+    % Assuming triangles is a 3x3xn matrix where each page represents a triangle
+
+    n = size(triangles, 3); % Number of triangles
+    hit = false; % Flag to check if intersection occurs
+
+    for i = 1:n
+        % Extract vertices of the triangle
+        v1 = triangles(:, :, i);
+        % Check for intersection with each triangle
+        if isIntersecting(normale, closest_point, v1)
+            hit = true;
+            break;
+        end
+    end
+
+    % Reverse normal if no intersection
+    if ~hit
+        normale = -normale;
+    end
 end

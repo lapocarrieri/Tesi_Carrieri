@@ -54,7 +54,7 @@ link=6;
             end
         end
 % Create a figure and an axes for 3D plotting
-figure;
+figure(3);
 hold on;
 grid on;
 axis equal;
