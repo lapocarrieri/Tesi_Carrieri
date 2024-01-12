@@ -40,13 +40,13 @@ num_part=50;
 Niterations=6;
 Point_intersectedActualFrame(1:3)=point;
 normBefore=norm(Point_intersectedActualFrame(1:3)-point)
-J_w = ComputePoint_withWrenches(Q_sampled(index,:),link_collided);
+J_w = ComputePoint_withWrenches(Q_sampled(index,:),link);
 if link_collided(index) > 0
 disp('CPF:')
 is_initialized=false;
 indixes=indixes+1;
-T=QtoP(Q_sampled(index,:),link_collided);
-Points=Meshes.Points(:,1:4,link_collided);
+T=QtoP(Q_sampled(index,:),link);
+Points=Meshes.Points(:,1:4,link);
 zero_rows = all(Points == 0, 2);
 % Remove these rows
 matrixes = Points(~zero_rows, :);
@@ -63,7 +63,7 @@ addpath('Functions')
 for i=1:speed:Niterations-1
 hold off
 generated_points=zeros(3,num_part);
-[chi2, W_prime,generated_points,Festimated,f4] = cpf_RealPoint3(num_part, chi2, Residual_calculated(index,:), Point_intersectedActualFrame,link_collided,is_initialized,Meshes,triangles,generated_points,point,i,Niterations,J_w,f4,f2);
+[chi2, W_prime,generated_points,Festimated,f4] = cpf_RealPoint3(num_part, chi2, Residual_calculated(index,:), Point_intersectedActualFrame,link,is_initialized,Meshes,triangles,generated_points,point,i,Niterations,J_w,f4,f2);
 figure(f1);
 hold off
 prova = kuka.show(Q_sampled(index,:), 'visuals', 'on', 'collision', 'off');
@@ -72,7 +72,7 @@ hold on
 textString = sprintf('Force = [%0.3f, %0.3f, %0.3f]\npoint = [%0.3f, %0.3f, %0.3f]\nerror = %0.3f\nlink = %d', ...
 ExternalForceAppliedActualFrame(1), ExternalForceAppliedActualFrame(2), ExternalForceAppliedActualFrame(3), ...
 point(1), point(2), point(3), ...
-error3,link_collided);
+error3,link);
 text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignment', 'bottom', ...
 'FontSize', 10, 'Color', 'black');
 view(135, 69);

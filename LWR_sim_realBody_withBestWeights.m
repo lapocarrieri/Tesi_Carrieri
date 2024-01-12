@@ -92,7 +92,7 @@ Point_intersected=Point_intersected';
 Point_intersectedActualFrame=Point_intersected;
 tic
 ErrorBeforeCPF_ActualFrame=0;
-while (toc<3000)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
+while (toc<600)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 disp(t0);
 index = index + 1;
 figure(f3);
@@ -153,6 +153,10 @@ dJ = dJdt_LWR(q0(8),q0(9),q0(10),q0(11),q0(12),q0(13),q0(1),q0(2),q0(3),q0(4),q0
 %sigma_trajectory = min(diag(S));
 dp = J * q0(8:14)';
 d2p = dJ * q0(8:14)' + J * accs(end,:)';
+prefsampled(index,:)=p_ref;
+psampled(index,:)=p;
+dprefsampled(index,:)=p_ref;
+dpsampled(index,:)=p;
 err_p = p_ref - p;
 err_dp = dp_ref - dp;
 err_ddp = [0 0 0]'-d2p;
@@ -163,28 +167,13 @@ d2p_ref = Kp * err_p + Kd * err_dp + d2p_ff;
 tspan =[t0,t0+DeltaT];
 % EXACT PROJECTOR:
 Pj = eye(7) - pinv(J) * J;
-% Friction calculation
-%     %% Detection
-%     if link_collided(index)>0
-%         print('the robot is subjected to a force')
-%         position=p;
-%         d2p_ref = Kp * err_p  - Kd *dp ;
-%     end
+
 %% TO BE FIXED
 %     friction =  0.1*(-A_friction .* sign(q0(8:14)) - 0.001 * q0(8:14));
 friction =  0.0;
-%%DAMPED-LEAST SQUARE
-%     A = (J' * J + damping * eye(length(q0(1:7))));
-%     B = J' * (d2p_ref - dJ * q0(8:14)');
-%     X1 = lsqminnorm(A,B);
-%     Uref_task = X1';
+
 %% PSEUDOINVERSE
-Uref_task = (J' * (d2p_ref ))';
-uopt = zeros(7,1);
-%uopt = [0 0 0 0 1 1 1]';
-%uopt = subs(J5,QQ(t),q0(1:7))';
-Uref_redundant = (Pj * uopt)';
-Uref = Uref_task; %+ Uref_redundant;
+Uref = (J' * (d2p_ref ))';
 %% to avoid breakdown due to a too high velocity impressed in the system :
 %
 %     for ii=8:14
@@ -221,6 +210,7 @@ J_actualframe=T(1:3,1:3)'*J_force;
 %%force in world frame
 J_w = ComputePoint_withWrenches(q0(1:7),link);
 TauExternalForce=(J_w'*[ExternalForceAppliedActualFrame;m])';
+ExternalForceAppliedActualFrameSampled(index,:)=ExternalForceAppliedActualFrame;
 %     CalculatedPoint
 %     S_fext =[0 -ExternalForceAppliedActualFrame(3) ExternalForceAppliedActualFrame(2) ; ExternalForceAppliedActualFrame(3) 0 -ExternalForceAppliedActualFrame(1) ; -ExternalForceAppliedActualFrame(2) ExternalForceAppliedActualFrame(1) 0 ];
 %     m=double(-S_fext*point(1:3))
@@ -233,6 +223,23 @@ TauExternalForce=(J_w'*[ExternalForceAppliedActualFrame;m])';
 TauFL = (g + S*q0(8:14)' + B * Uref')'-0.9*TauExternalForce;  % this is the applied torque
 Tau = TauFL+TauExternalForce; % this is the real tau applied
 acc = (inv(B)* (Tau' - friction - S*q0(8:14)' - g))'
+% % Impedance
+%   % Calculate Force Error
+%     err_f = F_desired - force_current;
+% 
+% 
+%     % Impedance Control Law
+%     F_control = Md * d2p_ref + Bd * dq_current + Kd * q_current;
+%     Tau = F_control + Kf * err_f;
+%     % Impedance Control Law
+%     % Compute the desired end-effector acceleration based on the dynamic impedance model
+%     a = ddr_d + inv(Md) * (Dd * (dr - dr_d) + Kd * (r - r_d) + F_ext);
+% 
+%     % Calculate the control input 'u' using feedback linearization
+%     u = Jr(q_current)' * (Mr(q_current) * a + Sr(q_current, dq_current) * dq_current + gr(q_current) - F_ext);
+% 
+% %Admittance
+% d2q_desired = inv(Md) * (F_external - Bd * dq_current - Kd * q_current);
 % EULER INTEGRATION
 pk=NaN(7);
 if q0(1:7)==pk
@@ -298,6 +305,7 @@ wrenches5=pinv(J_withwrenches')*Residual_calculated(index,:)';
 error1 = [ExternalForceAppliedActualFrame;m]-wrenches5;
 %wrenches3=[ExternalForceAppliedActualFrame;m];
 f_i=wrenches5(1:3);
+f_i_sampled(index,:)=f_i;
 m_i=wrenches5(4:6);
 Sf_i=[0 -f_i(3) f_i(2) ; f_i(3) 0 -f_i(1) ; -f_i(2) f_i(1) 0 ];
 p_dc=Sf_i*m_i/(norm(f_i))^2;
@@ -306,8 +314,7 @@ p_dc=Sf_i*m_i/(norm(f_i))^2;
 %                  y = radii*sin(pi/5) +  cnt(2);
 %                  z=height;
 %                  p_dc=[x, y,z]'
-Rotation = T(1:3,1:3);
-tran = T(1:3,4);
+
 % p_dc=pinv(-Sf_i)*m_i
 % T= QtoP(Q_sampled(end,:),link_collided(end));
 Lambda_coefficient=f_i/(norm(f_i))^2;
@@ -324,7 +331,7 @@ hold off
 Point_intersected = IntersectionPoint(line,link_collided(index),Point_intersected(1:3),Meshes,T);
 disp('Point_intersected')
 if isempty(Point_intersected)
-Point_intersected_actual_frame=closest_point_to_triangle(triangles, p_dc');
+Point_intersected_actual_frame=closest_point_to_triangle3(triangles, p_dc');
 Point_intersected=T*[Point_intersected_actual_frame';1];
 disp('point initialiazation not optimal')
 end
@@ -389,13 +396,56 @@ save("plotDatas")
 %ExternalTauSOSM_calculated
 %ExternalTauSOSML_calculated
 %TauExtForce
-f8=figure()
-plot(time(1:index-1), TauExtForce(1:index-1,:)', 'r', 'LineWidth', 2);
+figure()
+% Plot the external force in red
+plot(time(1:index-1), TauExtForce(1:index-1,:)', 'r', 'LineWidth', 0.5);
 hold on;
-plot(time(1:index-1), Residual_calculated(1:index-1,:), 'g', 'LineWidth', 0.5);
-hold off
-figure();
-for i = 2:length(errors_initialization_sampled)
-hold on
-plot(time(i), errors_initialization_sampled{i}, '.');
-end
+plot(time(1:index-1), Residual_calculated(1:index-1,:)', 'g', 'LineWidth', 0.5);
+% Plot the residuals in greenplot(time(1:index-1), Residual_calculated(1:index-1,:), 'g', 'LineWidth', 0.5);
+
+% Adding title and axis labels
+title('External Force and Residual Over Time');
+xlabel('Time (s)'); % Assuming the time variable is in seconds
+ylabel('Magnitude'); % Replace with a more specific label if needed
+
+% Create
+
+figure()
+plot(time(1:index-1), prefsampled(1:index-1,:)', 'r', 'LineWidth', 0.5);
+hold on;
+plot(time(1:index-1), psampled(1:index-1,:), 'g', 'LineWidth', 0.5);
+title('Position error');
+xlabel('Time (s)'); % Assuming the time variable is in seconds
+ylabel('Magnitude'); % Replace with a more specific label if needed
+
+figure()
+plot(time(1:index-1), dprefsampled(1:index-1,:)', 'r', 'LineWidth', 0.5);
+hold on;
+plot(time(1:index-1), dpsampled(1:index-1,:), 'g', 'LineWidth', 0.5);
+title('Velocity');
+xlabel('Time (s)'); % Assuming the time variable is in seconds
+ylabel('Magnitude'); % Replace with a more specific label if needed
+
+% Optionally, add a legend if it helps interpret the plots
+legend('Reference Velocity', 'Actual Velocity');
+figure()
+plot(time(1:index-1), Q_sampled(1:index-1,:)', 'r', 'LineWidth', 0.5);
+title('Joint position');
+xlabel('Time (s)'); % Assuming the time variable is in seconds
+ylabel('Magnitude'); % Replace with a more specific label if needed
+
+figure()
+plot(time(1:index-1), QD_sampled(1:index-1,:)', 'r', 'LineWidth', 0.5);
+title('Joint Velocities');
+xlabel('Time (s)'); % Assuming the time variable is in seconds
+ylabel('Magnitude'); % Replace with a more specific label if needed
+
+
+figure()
+plot(time(1:index-1), ExternalForceAppliedActualFrameSampled(1:index-1,:), 'r', 'LineWidth', 0.5);
+hold on;
+plot(time(1:index-1), f_i_sampled(1:index-1,:), 'g', 'LineWidth', 0.5);
+title('External Force and Residual Over Time');
+xlabel('Time (s)'); % Assuming the time variable is in seconds
+ylabel('Magnitude'); % Replace with a more specific label if needed
+
