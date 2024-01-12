@@ -30,8 +30,16 @@ This Jupyter Notebook contains the Python code for developing an LSTM neural net
 
 To run this project effectively, follow these steps:
 1. Open two separate MATLAB windows.
-2. In the first MATLAB window, run `CPF_script2.m`. This script will continuously calculate the force application points and does not require waiting for the simulation to progress.
-3. In the second MATLAB window, run `LWR_sim_realBody.m`. This script handles the real-time simulation of the robot.
+2. In the first MATLAB window, run
+   ```
+   CPF_script2
+   ```
+    This script will continuously calculate the force application points and does not require waiting for the simulation to progress.
+4. In the second MATLAB window, run
+   ```
+   LWR_sim_realBody.m
+   ```
+   This script handles the real-time simulation of the robot.
 
 These two scripts communicate with each other and operate independently. The `CPF_script2.m` script receives data every 0.1 second from the simulation running in `LWR_sim_realBody.m`, ensuring that the contact particle filter is consistently updated without delays.
 
