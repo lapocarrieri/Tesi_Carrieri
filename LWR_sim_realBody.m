@@ -11,7 +11,7 @@
 clc;
 close all;
 clear all;
-linkforce=5;
+linkforce=6;
 ss = 1;
 Sigma=0;
 n=10000;
@@ -29,10 +29,13 @@ close all
 chi2 = zeros(3,20);
 %% Figures
 % f1 is the EE point actual point and reference point
-f1=figure;
+f1=figure();
+%T0=QtoP(q0(1:7) ,link);p_0=T0(1:3,4);
+p_0 = f(q0(1),q0(2),q0(3),q0(4),q0(5),q0(6))
 figure(f1),scatter3(p_0(1), p_0(2), p_0(3), 'filled');
 firstcollision=1;
 set(f1, 'Name', 'End effector points');
+axis equal
 hold on
 % Assuming the center of the circle is on the x-axis for simplicity
 % You can choose any point at a distance of 'radius' from p_0 in the xy-plane
@@ -71,7 +74,7 @@ kuka.DataFormat = 'row';
 rateCtrlObj = rateControl(10000);
 CalculatedPoint=[0 0 0];
 gainE=100;
-gain=gain*100000;
+gain=gain*1;
 DeltaT = 0.01; % sampling time of the robot
 GainInv=inv(eye(7)+gain*DeltaT) * gain ;
 GainEInv=inv(eye(1)+gainE*DeltaT) * gainE ;
@@ -85,40 +88,49 @@ sumEdot=0;
 sumSigma=0;
 index=index-1;
 acc=zeros(1,7);
-Kp=10*[10,0,0;0,20,0;0,0,20];
-Kd=Kp;
+%Kp = [100,0,0;0,100,0;0,0,400]*1;
+%Kp = [10,0,0;0,10,0;0,0,400]*1;
+Kp = [500,0,0;0,500,0;0,0,2000]*1;
+Kd = [10,0,0;0,10,0;0,0,50]*1;
+%Kd = [100,0,0;0,100,0;0,0,50]*1;
+%Kd=0;
 Point_intersected=Point_intersected';
 Point_intersectedActualFrame=Point_intersected;
 tic
 ErrorBeforeCPF_ActualFrame=0;
 F_applied=ExternalForceAppliedActualFrame;
 initial_position=Point_intersected;
-while (toc<60)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
+dp=dp_0;
+d2p_ref=d2p_0;
+while (toc<6000)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 disp(t0);
-F_applied=ExternalForceAppliedActualFrame;
+%F_applied=ExternalForceAppliedActualFrame;
 index = index + 1;
 
-figure(f3);
-hold off
-if index>1
-prova = kuka.show(Q_sampled(index-1,:), 'visuals', 'on', 'collision', 'off');
-hold on
-% Adding text in the bottom right corner of the figure
-textString = sprintf('Force = [%0.3f, %0.3f, %0.3f]\npoint = [%0.3f, %0.3f, %0.3f]\nerror = %0.3f\nlink = %d', ...
-Point_intersectedActualFrame(1), Point_intersectedActualFrame(2), Point_intersectedActualFrame(3), ...
-point(1), point(2), point(3), ...
-ErrorBeforeCPF_ActualFrame,link);
-text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignment', 'bottom', ...
-'FontSize', 10, 'Color', 'black');
-view(135, 69);
-camzoom(3);
-
-end
+% figure(f3);
+% hold off
+% if index>1
+% prova = kuka.show(Q_sampled(index-1,:), 'visuals', 'on', 'collision', 'off');
+% hold on
+% % Adding text in the bottom right corner of the figure
+% textString = sprintf('Force = [%0.3f, %0.3f, %0.3f]\npoint = [%0.3f, %0.3f, %0.3f]\nerror = %0.3f\nlink = %d', ...
+% Point_intersectedActualFrame(1), Point_intersectedActualFrame(2), Point_intersectedActualFrame(3), ...
+% point(1), point(2), point(3), ...
+% ErrorBeforeCPF_ActualFrame,link);
+% text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignment', 'bottom', ...
+% 'FontSize', 10, 'Color', 'black');
+% view(135, 69);
+% camzoom(3);
+% 
+% end
 disp('time instant:')
 time(index)=t0;
 q0(8:14) = acc * DeltaT + q0(8:14);
 q0(1:7)  = q0(1:7) + q0(8:14) * DeltaT ;
 figure(f1);
+%dp = J * q0(8:14)';
+%d2p = dJ * q0(8:14)' + J * acc
+dp_0(2)=-0.05;
 %% TRAJ (CIRCLE)
 p_ref(1,1) = p_0(1) -  radius * (1 - cos(frequency * (t0)));
 dp_ref(1,1) = dp_0(1) - radius * frequency * sin(frequency * (t0));
@@ -126,11 +138,16 @@ d2p_ff(1,1) = d2p_0(1) - radius * frequency * frequency * cos(frequency * (t0));
 p_ref(2,1) = p_0(2) -  radius * (sin(frequency * (t0)));
 dp_ref(2,1) = dp_0(2) - radius * frequency * cos(frequency * (t0));
 d2p_ff(2,1) = d2p_0(2) + radius * frequency * frequency * sin(frequency * (t0));
-p_ref(3,1) = p_0(3) ;
+p_ref(3,1) = p_0(3);
 dp_ref(3,1) = dp_0(3);
 d2p_ff(3,1) = d2p_0(3);
 hold on
-figure(f1),scatter3(p_ref(1,1),p_ref(2,1),p_ref(3,1),'g','SizeData',20)
+
+
+p = f(q0(1),q0(2),q0(3),q0(4),q0(5),q0(6));
+figure(f1),scatter3(p(1,1),p(2,1),p(3,1),'g','SizeData',20)
+hold on
+figure(f1),scatter3(p_ref(1,1),p_ref(2,1),p_ref(3,1),'r','SizeData',20)
 %% Change in the code if we want that a certain point make a specifi trajectory and not the EE
 %     p = T(1:3,4)+[0; 0; 0.31];
 %
@@ -144,32 +161,33 @@ figure(f1),scatter3(p_ref(1,1),p_ref(2,1),p_ref(3,1),'g','SizeData',20)
 % EE point calculated with f
 %now if the force is applied to the end effector a faster comutation is
 %used so J_LWR
-p = f(q0(1),q0(2),q0(3),q0(4),q0(5),q0(6));
+
 J = J_LWR(q0(1),q0(2),q0(3),q0(4),q0(5),q0(6));
-dJ = dJdt_LWR(q0(8),q0(9),q0(10),q0(11),q0(12),q0(13),q0(1),q0(2),q0(3),q0(4),q0(5),q0(6));
-%[~,S,~] = svd(J);
+    
+    dJ = dJdt_LWR(q0(8),q0(9),q0(10),q0(11),q0(12),q0(13),q0(1),q0(2),q0(3),q0(4),q0(5),q0(6));%[~,S,~] = svd(J);
 %sigma_trajectory = min(diag(S));
 dp = J * q0(8:14)';
-d2p = dJ * q0(8:14)' + J * accs(end,:)';
 prefsampled(index,:)=p_ref;
-psampled(index,:)=p;
-dprefsampled(index,:)=p_ref;
-dpsampled(index,:)=p;
-err_p = p_ref - p;
-err_dp = dp_ref - dp;
-err_ddp = [0 0 0]'-d2p;
+    psampled(index,:)=p;
+    dprefsampled(index,:)=dp_ref;
+    dpsampled(index,:)=dp;
+err_p = p_ref-p;
+err_dp = dp_ref-dp ;
 %% PD KINEMATIC
-d2p_ref = Kp * err_p + Kd * err_dp + d2p_ff;
+d2p_ref = Kp * err_p + Kd * err_dp + d2p_ff;%
+
 tspan =[t0,t0+DeltaT];
 % EXACT PROJECTOR:
 Pj = eye(7) - pinv(J) * J;
 
 %% TO BE FIXED
     friction =  0.1*(-A_friction .* sign(q0(8:14)) - 0.001 * q0(8:14));
-%friction =  0.0;
+friction =  0.0;
 
 %% PSEUDOINVERSE
-Uref = (J' * (d2p_ref ))';
+Uref = (pinv(J)* (d2p_ref - dJ * q0(8:14)'))';
+
+
 %% to avoid breakdown due to a too high velocity impressed in the system :
 %
 %     for ii=8:14
@@ -203,15 +221,21 @@ ExternalForceAppliedActualFrameSampled(index,:)=F_applied;
 %          if index<60
 %                  TauExternalForce=[0 0 0 0 0  0 0];
 %          end
-
 %% COMPUTED TORQUE FL - dynamic model
-Kf=1;
+TauExternalForce=[0 0 0 0 0  0 0];
+Kf=0;
 
 scaling_factor=1;
 Uref=scaling_factor*Uref;
 TauFL = (g + S*q0(8:14)' + B * Uref'+J'*(Kf*err_f))'-0.9*TauExternalForce;  % this is the applied torque
 Tau = TauFL+TauExternalForce; % this is the real tau applied
-acc = (inv(B)* (Tau' - friction - S*q0(8:14)' - g))'
+acc = (inv(B)* (Tau' - friction - S*q0(8:14)' - g))';
+continue;
+d2p = dJ * q0(8:14)' + J * acc'
+error=d2p-d2p_ff
+err_p = p_ref-p
+err_dp = dp_ref-dp 
+
 % % Impedance
 %   % Calculate Force Error
 %     err_f = F_desired - force_current;
@@ -289,6 +313,7 @@ error1 = [F_applied;m]-wrenches5;
 %wrenches3=[ExternalForceAppliedActualFrame;m];
 f_i=wrenches5(1:3);
 f_i_sampled(index,:)=f_i;
+errorrr=f_i-ExternalForceAppliedActualFrame
 
 
 m_i=wrenches5(4:6);
@@ -364,6 +389,7 @@ CalculatedPoint=Point_intersectedActualFrame(1:3)';
 Rotation = T(1:3,1:3);
 tran = T(1:3,4);
 load(['sharedDatas\sharedVar', num2str(linkforce)])
+
 disp(norm(CalculatedPoint(1:3)'-point));
 contact_point_PF = Rotation*CalculatedPoint'+tran;
 disp('error Contact point calculated after CPF:')

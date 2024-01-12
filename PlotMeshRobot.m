@@ -88,7 +88,7 @@ H = [-1.1 pi/4 0 1.3*pi -1 0 0];
 prova = kuka.show(H,'visuals','on','collision','off');
 prova.CameraPosition = [-2,7,6];
 hold off
-q0=[0 0 pi/2 pi/3 -pi/4 0 pi/8 0 0 0 0 0 0 0]
+q0=[pi/3 pi/5 pi/2 pi/3 -pi/4 -pi/16 pi/8 0 0 0 0 0 0 0]
 matrix2=zeros(2000,4);
 for link=1:7
 T=QtoP(q0(1:7),link);
