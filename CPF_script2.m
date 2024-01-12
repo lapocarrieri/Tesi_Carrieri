@@ -25,10 +25,7 @@ addVisual(kuka.Bodies{6},"Mesh","./visual/link_6.STL")
 addVisual(kuka.Bodies{7},"Mesh","./visual/link_7.STL")
 kuka.Gravity = [0,0,-9.81];
 kuka.DataFormat = 'row';
-%EF=0.1*log10(ExternalForce+0.1)+0.1;
-% Difference
-%             prova = kuka.show(Q_sampled(index,:), 'visuals', 'on', 'collision', 'off');
-%             prova.CameraPosition = [-2, 7, 6];
+
 rateCtrlObj = rateControl(10000);
 error3=0.8;
 f3=figure();
@@ -48,7 +45,6 @@ indixes=indixes+1;
 T=QtoP(Q_sampled(index,:),link);
 Points=Meshes.Points(:,1:4,link);
 zero_rows = all(Points == 0, 2);
-% Remove these rows
 matrixes = Points(~zero_rows, :);
 matrix2=(T*matrixes')';
 x = matrix2(:, 1);
@@ -78,24 +74,17 @@ text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignmen
 view(135, 69);
 camzoom(5)
 plot3(x, y, z, 'b.');
-oggettiRobot = findobj(f1, 'Type', 'patch'); % Sostituisci 'patch' con il tipo corretto se necessario
+oggettiRobot = findobj(f1, 'Type', 'patch'); 
 % Applica la trasparenza a questi oggetti
 for ii = 1:length(oggettiRobot)
 set(oggettiRobot(ii), 'FaceAlpha', 0.5); % Imposta una trasparenza del 50%
 end
-%disp(i+'-th iteration for the CPF');
-%is_collided
+
 % starting Niterations before the end the contact particle
 % filter is iterated Niterations times until the last index.
 % this is done at every time instant so if the number of
 % iterations is high the code is very slow
-%% plot the cylinder
-%here the cylinder representing the link collided is
-%represented in a 3D plane
-%transformation of both the circumference upper and lower using
-%R*p+t
-% estimated_contat_point_prime is the point calculated in the initialization phase
-% in respect of the world frame
+
 %% CPF
 % here the code for the particle filter starts, the CPF is in
 % the cpf function and takes in input the joints angle, the
@@ -113,10 +102,6 @@ hold on
 is_initialized=true;
 chiWorldFrames=T*[chi2;ones(1,num_part)];
 Initialppoint=T*Point_intersectedActualFrame;
-%            scatter3(Initialppoint(1),Initialppoint(2),Initialppoint(3),'g','filled');
-%             hold on
-%             text(Initialppoint(1),Initialppoint(2),Initialppoint(3),'InitialPoint');
-%
 scatter3(chiWorldFrames(1,:),chiWorldFrames(2,:),chiWorldFrames(3,:),'y', 'filled' ,'SizeData', 5);
 % Keep the current plot
 realPoint=T*[point;1];
@@ -202,11 +187,5 @@ view(3); % for a 3D view
 grid on; % to enable grid
 axis equal;
 end
-% Continuous execution code
-% ...
-%figure(f6),scatter3(CalculatedPoint(1),CalculatedPoint(2),CalculatedPoint(3),'p', 'filled' ,'SizeData', 50);
-% Add a text label
-%textname="CalculatedPoint 5-th iteration";
-%figure(f6),text(CalculatedPoint(1),CalculatedPoint(2),CalculatedPoint(3), textname, 'FontSize', 6, 'HorizontalAlignment', 'left');
 end
 end
