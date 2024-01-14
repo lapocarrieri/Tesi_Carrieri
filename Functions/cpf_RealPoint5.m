@@ -158,7 +158,7 @@ end
                    % Particles(:,num_part_multiplicator*(i-1)+j)=point;
                          
                  % Desired values for Fm(1:3)
-desired_Fm = [-18.719195367712636; -6.683139679045226; 2.219767739151341];
+desired_Fm = [1.2246;   -1.8115;    8.7318];
 
 % Tolerance for each component of Fm(1:3)
 tolerance = [0.5; 0.5; 0.5]; % Adjust this as needed
@@ -211,7 +211,7 @@ nonlcon = @(Fm) deal( ...
         
 %PlotWeights;
      figure(f2);
-      PlotWeights;
+      %PlotWeights;
     new_indeces2=resample3(num_part, W);%resampling
 
      chi2 = Particles(:, new_indeces2);

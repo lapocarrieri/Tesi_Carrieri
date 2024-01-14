@@ -11,7 +11,7 @@
 clc;
 close all;
 clear all;
-linkforce=6;
+linkforce=5;
 ss = 1;
 Sigma=0;
 n=10000;
@@ -74,7 +74,7 @@ kuka.DataFormat = 'row';
 rateCtrlObj = rateControl(10000);
 CalculatedPoint=[0 0 0];
 gainE=100;
-gain=gain*1;
+gain=gain;
 DeltaT = 0.01; % sampling time of the robot
 GainInv=inv(eye(7)+gain*DeltaT) * gain ;
 GainEInv=inv(eye(1)+gainE*DeltaT) * gainE ;
@@ -90,8 +90,8 @@ index=index-1;
 acc=zeros(1,7);
 %Kp = [100,0,0;0,100,0;0,0,400]*1;
 %Kp = [10,0,0;0,10,0;0,0,400]*1;
-Kp = [500,0,0;0,500,0;0,0,2000]*1;
-Kd = [10,0,0;0,10,0;0,0,50]*1;
+Kp = [1000,0,0;0,1000,0;0,0,1000]
+Kd = [10,0,0;0,10,0;0,0,50]
 %Kd = [100,0,0;0,100,0;0,0,50]*1;
 %Kd=0;
 Point_intersected=Point_intersected';
@@ -102,9 +102,9 @@ F_applied=ExternalForceAppliedActualFrame;
 initial_position=Point_intersected;
 dp=dp_0;
 d2p_ref=d2p_0;
-while (toc<6000)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
+while (toc<300)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 disp(t0);
-%F_applied=ExternalForceAppliedActualFrame;
+F_applied=ExternalForceAppliedActualFrame;
 index = index + 1;
 
 % figure(f3);
@@ -124,6 +124,7 @@ index = index + 1;
 % 
 % end
 disp('time instant:')
+disp(t0)
 time(index)=t0;
 q0(8:14) = acc * DeltaT + q0(8:14);
 q0(1:7)  = q0(1:7) + q0(8:14) * DeltaT ;
@@ -142,7 +143,7 @@ p_ref(3,1) = p_0(3);
 dp_ref(3,1) = dp_0(3);
 d2p_ff(3,1) = d2p_0(3);
 hold on
-
+    
 
 p = f(q0(1),q0(2),q0(3),q0(4),q0(5),q0(6));
 figure(f1),scatter3(p(1,1),p(2,1),p(3,1),'g','SizeData',20)
@@ -217,24 +218,20 @@ S_fext =skew_symmetric(F_applied);
 m=double(-S_fext*point(1:3));
 TauExternalForce=(J_w'*[F_applied;m])';
 ExternalForceAppliedActualFrameSampled(index,:)=F_applied;
-
-%          if index<60
-%                  TauExternalForce=[0 0 0 0 0  0 0];
-%          end
+% 
+% %          if index<60
+% %                  TauExternalForce=[0 0 0 0 0  0 0];
+% %          end
 %% COMPUTED TORQUE FL - dynamic model
-TauExternalForce=[0 0 0 0 0  0 0];
+%TauExternalForce=[0 0 0 0 0  0 0];
 Kf=0;
-
+Kt=0.9;
 scaling_factor=1;
 Uref=scaling_factor*Uref;
-TauFL = (g + S*q0(8:14)' + B * Uref'+J'*(Kf*err_f))'-0.9*TauExternalForce;  % this is the applied torque
+TauFL = (g + S*q0(8:14)' + B * Uref')'-Kt*Residual_calculated(index,:);  % this is the applied torque
 Tau = TauFL+TauExternalForce; % this is the real tau applied
 acc = (inv(B)* (Tau' - friction - S*q0(8:14)' - g))';
-continue;
-d2p = dJ * q0(8:14)' + J * acc'
-error=d2p-d2p_ff
-err_p = p_ref-p
-err_dp = dp_ref-dp 
+t0 = t0+DeltaT;
 
 % % Impedance
 %   % Calculate Force Error
@@ -258,7 +255,7 @@ pk=NaN(7);
 if q0(1:7)==pk
 return;
 end
-t0 = t0+DeltaT;
+
 %% save all the variables needed for the force reconstruction and the calculation of the residuals
 TauExtForce(index,:)=(TauExternalForce);
 Q_sampled(index,:)=q0(1:7);
@@ -273,6 +270,7 @@ h_sampled{index}=(S'*q0(8:14)'-g);
 fprintf('Starting of the Residual calculation:\n')
 
 %% Momentum-based isolation of collisions
+
 t= index;
 h=(S_sampled{t})'*QD_sampled(t,:)'-g_sampled{t};
 sumTau = sumTau + TAU_sampled(t,:)';
@@ -313,7 +311,6 @@ error1 = [F_applied;m]-wrenches5;
 %wrenches3=[ExternalForceAppliedActualFrame;m];
 f_i=wrenches5(1:3);
 f_i_sampled(index,:)=f_i;
-errorrr=f_i-ExternalForceAppliedActualFrame
 
 
 m_i=wrenches5(4:6);
@@ -361,7 +358,7 @@ end
 dot_product = dot(initial_force/norm(initial_force), direction_of_displacement);
 
 F_applied = initial_force * (1 - dot_product * distance);
-F_applied = max(F_min, min(norm(F_applied), F_max)) * (initial_force/norm(initial_force))
+F_applied = max(F_min, min(norm(F_applied), F_max)) * (initial_force/norm(initial_force));
 fapplieds(index,:)=F_applied;
 
 else
@@ -384,7 +381,7 @@ ErrorBeforeCPF_ActualFrame=norm(RealPointIntersectedWorldFrame(1:3)-Point_inters
 disp('error before CPF:')
 disp(vpa(norm(ErrorBeforeCPF_ActualFrame),3))
 
-save(['sharedDatas\sharedData',num2str(linkforce)],'point', 'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','speed');
+save(['sharedDatas\sharedData',num2str(linkforce)],'point', 'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','TauExternalForce');
 CalculatedPoint=Point_intersectedActualFrame(1:3)';
 Rotation = T(1:3,1:3);
 tran = T(1:3,4);
@@ -392,8 +389,8 @@ load(['sharedDatas\sharedVar', num2str(linkforce)])
 
 disp(norm(CalculatedPoint(1:3)'-point));
 contact_point_PF = Rotation*CalculatedPoint'+tran;
-disp('error Contact point calculated after CPF:')
-
+disp("error torquw")
+errorTorque
 
 %% Collaboration
 end
@@ -444,17 +441,48 @@ xlabel('Time (s)'); % Assuming the time variable is in seconds
 ylabel('Magnitude'); % Replace with a more specific label if needed
 
 
-figure()
-plot(time(1:index-1), ExternalForceAppliedActualFrameSampled(1:index-1,:), 'r', 'LineWidth', 0.5);
+% Assuming time, ExternalForceAppliedActualFrameSampled, f_i_sampled, and initial_force are defined
+
+% Total number of subplots
+nSubplots = 3;
+
+% Y-axis limits
+yAxisLimits = [-20, 20];
+
+% First subplot - Plotting first component of both f_i_sampled and ExternalForceAppliedActualFrameSampled
+subplot(nSubplots, 1, 1);
+plot(time(1:index-1), ExternalForceAppliedActualFrameSampled(1:index-1,1), 'r', 'LineWidth', 0.5);
 hold on;
-plot(time(1:index-1), f_i_sampled(1:index-1,:), 'g', 'LineWidth', 0.5);
-
-% Assuming initial_force is defined elsewhere in your code
-% Add a horizontal line at the level of initial_force
+plot(time(1:index-1), f_i_sampled(1:index-1,1), 'g', 'LineWidth', 0.5);
 yline(initial_force, 'b', 'LineWidth', 0.5);
+ylim(yAxisLimits);
+title('First Component: External Force vs. Calculated Force Over Time');
+xlabel('Time (s)');
+ylabel('Magnitude');
+hold off;
 
-title('External Force and Residual Over Time');
-xlabel('Time (s)'); % Assuming the time variable is in seconds
-ylabel('Magnitude'); % Replace with a more specific label if needed
-hold off; % Release the figure for further modification
+% Second subplot - Plotting second component of both f_i_sampled and ExternalForceAppliedActualFrameSampled
+subplot(nSubplots, 1, 2);
+plot(time(1:index-1), ExternalForceAppliedActualFrameSampled(1:index-1,2), 'r', 'LineWidth', 0.5);
+hold on;
+plot(time(1:index-1), f_i_sampled(1:index-1,2), 'g', 'LineWidth', 0.5);
+yline(initial_force, 'b', 'LineWidth', 0.5);
+ylim(yAxisLimits);
+title('Second Component: External Force vs. Calculated Force Over Time');
+xlabel('Time (s)');
+ylabel('Magnitude');
+hold off;
+
+% Third subplot - Plotting third component of both f_i_sampled and ExternalForceAppliedActualFrameSampled
+subplot(nSubplots, 1, 3);
+plot(time(1:index-1), ExternalForceAppliedActualFrameSampled(1:index-1,3), 'r', 'LineWidth', 0.5);
+hold on;
+plot(time(1:index-1), f_i_sampled(1:index-1,3), 'g', 'LineWidth', 0.5);
+yline(initial_force, 'b', 'LineWidth', 0.5);
+ylim(yAxisLimits);
+title('Third Component: External Force vs. Calculated Force Over Time');
+xlabel('Time (s)');
+ylabel('Magnitude');
+hold off;
+
 

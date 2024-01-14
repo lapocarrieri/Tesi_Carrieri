@@ -13,6 +13,9 @@ f1=figure();
 addpath 'Functions'
 speed=1;
 hold on
+index2=1;
+indexT=1;
+
 f2=figure();
 kuka = importrobot('./models/kuka_lwr.urdf');
 addVisual(kuka.Base,"Mesh","./visual/base.STL")
@@ -31,12 +34,11 @@ error3=0.8;
 f3=figure();
 f4=figure();
 chi2=zeros(3,num_part);
-while true
+tic
+while (toc<300)
 load(['sharedDatas\sharedData',num2str(linkforce), '.mat']);
 num_part=50;
 Niterations=6;
-Point_intersectedActualFrame(1:3)=point;
-normBefore=norm(Point_intersectedActualFrame(1:3)-point)
 J_w = ComputePoint_withWrenches(Q_sampled(index,:),link);
 if link_collided(index) > 0
 disp('CPF:')
@@ -59,7 +61,7 @@ addpath('Functions')
 for i=1:speed:Niterations-1
 hold off
 generated_points=zeros(3,num_part);
-[chi2, W_prime,generated_points,Festimated,f4] = cpf_RealPoint3(num_part, chi2, Residual_calculated(index,:), Point_intersectedActualFrame,link,is_initialized,Meshes,triangles,generated_points,point,i,Niterations,J_w,f4,f2);
+[chi2, W_prime,generated_points,Festimated,f4] = cpf_RealPoint5(num_part, chi2, TauExternalForce, Point_intersectedActualFrame,link,is_initialized,Meshes,triangles,generated_points,point,i,Niterations,J_w,f4,f2);
 figure(f1);
 hold off
 prova = kuka.show(Q_sampled(index,:), 'visuals', 'on', 'collision', 'off');
@@ -129,7 +131,6 @@ CalculatedPoint2=computeBari(chi2);
 %
 %             err=norm(centroids(2, :)'-point)
 %             err=norm(centroids(1, :)'-point)
-ErrorAfterCPF2(:,i)=norm(CalculatedPoint2(1:3)'-point);
 CalculatedPoint=closest_point_to_triangle3(triangles, CalculatedPoint2);
 CalculatedPointWorldFrame=T*[CalculatedPoint';1];
 scatter3(CalculatedPointWorldFrame(1), CalculatedPointWorldFrame(2), CalculatedPointWorldFrame(3), 'g', 'filled'); % Plot the point
@@ -137,7 +138,8 @@ text(CalculatedPointWorldFrame(1), CalculatedPointWorldFrame(2), CalculatedPoint
 error2=norm(CalculatedPoint2(1:3)'-point);
 %ErrorAfterCPF(:,ind)
 save(['sharedDatas\sharedVar', num2str(linkforce)],'CalculatedPoint','Festimated');
-ErrorAfterCPF2(:,i)=norm(CalculatedPoint(1:3)'-point)
+ErrorAfterCPF2(:,indexT)=norm(CalculatedPoint(1:3)'-point);
+indexT=indexT+1;
 figure(f3);
 hold off
 % Plotting the contact particle filter points in yellow
@@ -186,6 +188,61 @@ zlabel('Z-axis');
 view(3); % for a 3D view
 grid on; % to enable grid
 axis equal;
+
+CalculatedPointSampled(index2,:)=CalculatedPoint;
+RealPointSampled(index2,:)=point;
+CalculatedPointBeforeSampled(index2,:)=Point_intersectedActualFrame(1:3);
+errorCPF(index2,:)=CalculatedPoint'-point;
+errorPinv(index2,:)=point-Point_intersectedActualFrame(1:3);
+
+PointCPFworldframe=T*[CalculatedPoint';1];
+PointRealworldframe=T*[point;1];
+PointPinvworldframe=T*Point_intersectedActualFrame;
+
+CalculatedPointSampledworldframe(index2,:)=PointCPFworldframe(1:3);
+RealPointSampledworldframe(index2,:)=PointRealworldframe(1:3);
+CalculatedPointBeforeSampledworldframe(index2,:)=Point_intersectedActualFrame(1:3);
+index2=index2+1;
+end
+CalculatedPointSampled(index2,:)=CalculatedPoint;
+RealPointSampled(index2,:)=point;
+CalculatedPointBeforeSampled(index2,:)=Point_intersectedActualFrame(1:3);
+errorCPF(index2,:)=CalculatedPoint'-point;
+errorPinv(index2,:)=point-Point_intersectedActualFrame(1:3);
+
+PointCPFworldframe=T*[CalculatedPoint';1];
+PointRealworldframe=T*[point;1];
+PointPinvworldframe=T*Point_intersectedActualFrame;
+
+CalculatedPointSampledworldframe(index2,:)=PointCPFworldframe(1:3);
+RealPointSampledworldframe(index2,:)=PointRealworldframe(1:3);
+CalculatedPointBeforeSampledworldframe(index2,:)=Point_intersectedActualFrame(1:3);
+index2=index2+1;
 end
 end
-end
+time=1:1000;
+figure()
+% Plot the external force in red
+plot(time(1:index2-1), CalculatedPointSampled(1:index2-1,:)', 'r', 'LineWidth', 0.5);
+hold on;
+plot(time(1:index2-1), RealPointSampled(1:index2-1,:)', 'g', 'LineWidth', 0.5);
+% Plot the residuals in greenplot(time(1:index-1), Residual_calculated(1:index-1,:), 'g', 'LineWidth', 0.5);
+
+figure()
+% Plot the external force in red
+plot(time(1:index2-1), errorCPF(1:index2-1,:)', 'r', 'LineWidth', 0.5);
+
+
+figure()
+% Plot the external force in red
+plot(time(1:index2-1), CalculatedPointSampledworldframe(1:index2-1,:)', 'r', 'LineWidth', 0.5);
+hold on;
+plot(time(1:index2-1), RealPointSampledworldframe(1:index2-1,:)', 'g', 'LineWidth', 0.5);
+% Residual_calculated(1:index-1,:), 'g', 'LineWidth', 0.5);à
+
+
+figure()
+% Plot the external force in red
+plot(time(1:index2-1), ErrorAfterCPF2(1:index2-1)', 'r', 'LineWidth', 0.5);
+hold on;
+
