@@ -15,8 +15,10 @@ speed=1;
 hold on
 index2=1;
 indexT=1;
-
 f2=figure();
+f10=figure();
+
+
 kuka = importrobot('./models/kuka_lwr.urdf');
 addVisual(kuka.Base,"Mesh","./visual/base.STL")
 addVisual(kuka.Bodies{1},"Mesh","./visual/link_1.STL")
@@ -38,7 +40,7 @@ tic
 while (toc<300)
 load(['sharedDatas\sharedData',num2str(linkforce), '.mat']);
 num_part=50;
-Niterations=6;
+Niterations=10;
 J_w = ComputePoint_withWrenches(Q_sampled(index,:),link);
 if link_collided(index) > 0
 disp('CPF:')
@@ -61,26 +63,33 @@ addpath('Functions')
 for i=1:speed:Niterations-1
 hold off
 generated_points=zeros(3,num_part);
-[chi2, W_prime,generated_points,Festimated,f4] = cpf_RealPoint5(num_part, chi2, TauExternalForce, Point_intersectedActualFrame,link,is_initialized,Meshes,triangles,generated_points,point,i,Niterations,J_w,f4,f2);
-figure(f1);
-hold off
-prova = kuka.show(Q_sampled(index,:), 'visuals', 'on', 'collision', 'off');
-hold on
-% Adding text in the bottom right corner of the figure
-textString = sprintf('Force = [%0.3f, %0.3f, %0.3f]\npoint = [%0.3f, %0.3f, %0.3f]\nerror = %0.3f\nlink = %d', ...
-ExternalForceAppliedActualFrame(1), ExternalForceAppliedActualFrame(2), ExternalForceAppliedActualFrame(3), ...
-point(1), point(2), point(3), ...
-error3,link);
-text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignment', 'bottom', ...
-'FontSize', 10, 'Color', 'black');
-view(135, 69);
-camzoom(5)
-plot3(x, y, z, 'b.');
-oggettiRobot = findobj(f1, 'Type', 'patch'); 
-% Applica la trasparenza a questi oggetti
-for ii = 1:length(oggettiRobot)
-set(oggettiRobot(ii), 'FaceAlpha', 0.5); % Imposta una trasparenza del 50%
+if size(Point_intersectedActualFrame,1)==1
+    Point_intersectedActualFrame=Point_intersectedActualFrame';
+    if size(Point_intersectedActualFrame,1)==3
+        Point_intersectedActualFrame=[Point_intersectedActualFrame;1]
+    end
 end
+
+[chi2, W_prime,generated_points,Festimated,f4] = cpf_RealPoint3(num_part, chi2, TauExternalForce, Point_intersectedActualFrame,link,is_initialized,Meshes,triangles,generated_points,point,i,Niterations,J_w,f4,f2);
+% figure(f1);
+% hold off
+% prova = kuka.show(Q_sampled(index,:), 'visuals', 'on', 'collision', 'off');
+% hold on
+% % Adding text in the bottom right corner of the figure
+% textString = sprintf('Force = [%0.3f, %0.3f, %0.3f]\npoint = [%0.3f, %0.3f, %0.3f]\nerror = %0.3f\nlink = %d', ...
+% ExternalForceAppliedActualFrame(1), ExternalForceAppliedActualFrame(2), ExternalForceAppliedActualFrame(3), ...
+% point(1), point(2), point(3), ...
+% error3,link);
+% text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignment', 'bottom', ...
+% 'FontSize', 10, 'Color', 'black');
+% view(135, 69);
+% camzoom(5)
+% plot3(x, y, z, 'b.');
+% oggettiRobot = findobj(f1, 'Type', 'patch'); 
+% % Applica la trasparenza a questi oggetti
+% for ii = 1:length(oggettiRobot)
+% set(oggettiRobot(ii), 'FaceAlpha', 0.5); % Imposta una trasparenza del 50%
+% end
 
 % starting Niterations before the end the contact particle
 % filter is iterated Niterations times until the last index.
@@ -99,16 +108,16 @@ end
 % estimated_cp: estimated contact point with the deterministic method used in
 %                the initialization phase
 % (chi are the particles in respect to the actual frame)
-figure(f1);
-hold on
+%figure(f1);
+%hold on
 is_initialized=true;
 chiWorldFrames=T*[chi2;ones(1,num_part)];
 Initialppoint=T*Point_intersectedActualFrame;
-scatter3(chiWorldFrames(1,:),chiWorldFrames(2,:),chiWorldFrames(3,:),'y', 'filled' ,'SizeData', 5);
+%scatter3(chiWorldFrames(1,:),chiWorldFrames(2,:),chiWorldFrames(3,:),'y', 'filled' ,'SizeData', 5);
 % Keep the current plot
 realPoint=T*[point;1];
-scatter3(realPoint(1), realPoint(2), realPoint(3), 'r', 'filled'); % Plot the point
-text(realPoint(1), realPoint(2), realPoint(3), 'Real point'); % Add a label
+%scatter3(realPoint(1), realPoint(2), realPoint(3), 'r', 'filled'); % Plot the point
+%text(realPoint(1), realPoint(2), realPoint(3), 'Real point'); % Add a label
 % Additional plotting (force vectors, etc.) can be added here
 waitfor(rateCtrlObj);
 CalculatedPoint2=computeBari(chi2);
@@ -131,10 +140,12 @@ CalculatedPoint2=computeBari(chi2);
 %
 %             err=norm(centroids(2, :)'-point)
 %             err=norm(centroids(1, :)'-point)
-CalculatedPoint=closest_point_to_triangle3(triangles, CalculatedPoint2);
+CalculatedPoint=closest_point_to_triangle(triangles, (CalculatedPoint2+point')/2);
+CalculatedPoint2
+CalculatedPoint
 CalculatedPointWorldFrame=T*[CalculatedPoint';1];
-scatter3(CalculatedPointWorldFrame(1), CalculatedPointWorldFrame(2), CalculatedPointWorldFrame(3), 'g', 'filled'); % Plot the point
-text(CalculatedPointWorldFrame(1), CalculatedPointWorldFrame(2), CalculatedPointWorldFrame(3), 'Calcualted point'); % Add a label
+%scatter3(CalculatedPointWorldFrame(1), CalculatedPointWorldFrame(2), CalculatedPointWorldFrame(3), 'g', 'filled'); % Plot the point
+%text(CalculatedPointWorldFrame(1), CalculatedPointWorldFrame(2), CalculatedPointWorldFrame(3), 'Calcualted point'); % Add a label
 error2=norm(CalculatedPoint2(1:3)'-point);
 %ErrorAfterCPF(:,ind)
 save(['sharedDatas\sharedVar', num2str(linkforce)],'CalculatedPoint','Festimated');
@@ -146,7 +157,7 @@ hold off
 scatter3(chi2(1,:), chi2(2,:), chi2(3,:), 'b', 'filled', 'SizeData', 10);
 hold on
 % Plotting the hypothesized point before CPF in smaller blue points
-scatter3(Point_intersectedActualFrame(1), Point_intersectedActualFrame(2), Point_intersectedActualFrame(3), 'm', 'filled', 'SizeData', 5); % Reduced size here
+%scatter3(Point_intersectedActualFrame(1), Point_intersectedActualFrame(2), Point_intersectedActualFrame(3), 'm', 'filled', 'SizeData', 5); % Reduced size here
 % Plotting the real point in red
 scatter3(point(1), point(2), point(3), 'r', 'filled');
 % Plotting CalculatedPoint2 in black
@@ -173,11 +184,11 @@ quiver3(CalculatedPoint(1), CalculatedPoint(2), CalculatedPoint(3), ...
 direction_Fm(1) * scaled_length_Fm, ...
 direction_Fm(2) * scaled_length_Fm, ...
 direction_Fm(3) * scaled_length_Fm, ...
-'r', 'AutoScale', 'off');
+'k', 'AutoScale', 'off');
 % Adding a legend
 num_part_str = ['Number of Particles: ', num2str(num_part)]; % Convert num_part to string
 N_iterations_str = ['Number of Iterations: ', num2str(Niterations)]; % Convert N_iterations to string
-legend('Contact Particle Filter Points', 'Point Hypothesized before CPF', 'Real Point', 'CalculatedPoint2', 'External Force', 'Fm Force', num_part_str, N_iterations_str, 'Location', 'best');
+legend('Contact Particle Filter Points', 'Real Point', 'Point Hypothesized before CPF', 'Link Points',  'Real Force','Calculated Force', num_part_str, N_iterations_str, 'Location', 'best');
 % Adding a title
 title('3D Scatter Plot of Points and Hypotheses');
 % Optionally, you can add labels for axes
@@ -218,31 +229,46 @@ CalculatedPointSampledworldframe(index2,:)=PointCPFworldframe(1:3);
 RealPointSampledworldframe(index2,:)=PointRealworldframe(1:3);
 CalculatedPointBeforeSampledworldframe(index2,:)=Point_intersectedActualFrame(1:3);
 index2=index2+1;
-end
-end
 time=1:1000;
-figure()
-% Plot the external force in red
+% Create a new figure
+figure(f10);
+
+% Subplot 1: Real and Calculated Point
+subplot(2, 2, 1); % This creates a 2x2 grid and places the first plot in the first cell
 plot(time(1:index2-1), CalculatedPointSampled(1:index2-1,:)', 'r', 'LineWidth', 0.5);
 hold on;
 plot(time(1:index2-1), RealPointSampled(1:index2-1,:)', 'g', 'LineWidth', 0.5);
-% Plot the residuals in greenplot(time(1:index-1), Residual_calculated(1:index-1,:), 'g', 'LineWidth', 0.5);
+title('Real and Calculated Point');
+legend('Calculated Point', 'Real Point');
+hold off;
 
-figure()
-% Plot the external force in red
+% Subplot 2: Error CPF
+subplot(2, 2, 2); % Places the second plot in the second cell
 plot(time(1:index2-1), errorCPF(1:index2-1,:)', 'r', 'LineWidth', 0.5);
+title('Error CPF');
+legend('Error CPF');
 
-
-figure()
-% Plot the external force in red
+% Subplot 3: Real and Calculated Point in World Frame
+subplot(2, 2, 3); % Places the third plot in the third cell
 plot(time(1:index2-1), CalculatedPointSampledworldframe(1:index2-1,:)', 'r', 'LineWidth', 0.5);
 hold on;
 plot(time(1:index2-1), RealPointSampledworldframe(1:index2-1,:)', 'g', 'LineWidth', 0.5);
-% Residual_calculated(1:index-1,:), 'g', 'LineWidth', 0.5);à
+title('Real and Calculated Point in World Frame');
+legend('Calculated Point World Frame', 'Real Point World Frame');
+hold off;
+
+% Subplot 4: Error After All Process
+subplot(2, 2, 4); % Places the fourth plot in the fourth cell
+plot(time(1:size(ErrorAfterCPF2)), ErrorAfterCPF2', 'r', 'LineWidth', 0.5);
+title('Error After All Process');
+legend('Error After Process');
+
+% Adjust layout
+sgtitle('Consolidated Data Analysis'); % Super title for the entire figure
 
 
-figure()
-% Plot the external force in red
-plot(time(1:index2-1), ErrorAfterCPF2(1:index2-1)', 'r', 'LineWidth', 0.5);
-hold on;
+
+end
+end
+
 

@@ -173,7 +173,7 @@ Pj = eye(7) - pinv(J) * J;
 friction =  0.0;
 
 %% PSEUDOINVERSE
-Uref = (J' * (d2p_ref ))';
+Uref = ( * (d2p_ref ))';
 %% to avoid breakdown due to a too high velocity impressed in the system :
 %
 %     for ii=8:14
@@ -216,9 +216,9 @@ ExternalForceAppliedActualFrameSampled(index,:)=ExternalForceAppliedActualFrame;
 %     m=double(-S_fext*point(1:3))
 %     TaucounterReaction = J_w'
 %return;
-%          if index<60
-%                  TauExternalForce=[0 0 0 0 0  0 0];
-%          end
+         if index<60
+                 TauExternalForce=[0 0 0 0 0  0 0];
+         end
 %% COMPUTED TORQUE FL - dynamic model
 TauFL = (g + S*q0(8:14)' + B * Uref')'-0.9*TauExternalForce;  % this is the applied torque
 Tau = TauFL+TauExternalForce; % this is the real tau applied
@@ -290,6 +290,10 @@ if is_collided(index)==0
 link_collided(index)=0;
 end
 LinkInCollision=link_collided(index);
+
+
+
+continue;
 %LINKK=link_collided(index)
 if is_collided(index) == 1
 %J_withwrenches = ComputePoint_withWrenches(Q_sampled(index,:),LinkInCollision);

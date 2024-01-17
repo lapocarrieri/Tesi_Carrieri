@@ -216,7 +216,10 @@ nonlcon = @(Fm) deal( ...
 
      chi2 = Particles(:, new_indeces2);
      
-    
+     % for i=1:size(chi2,2)
+     % 
+     %    chi2(:,i)=closest_point_to_triangle3(triangles, chi2(:,i)');
+     % end
     end
                 %scatter3(surface_points(:,1),surface_points(:,2),surface_points(:,3),'r', 'filled' ,'SizeData', 10);
            

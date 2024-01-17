@@ -22,6 +22,7 @@ addpath 'Functions'
 %% Hyperparameters to be set
 %% Now there is the matlab simulation of the movement
 load(['Initialization\initializations', num2str(linkforce), '.mat'])
+radius=0.5;
 tf=10;
 disp('The point in the actual frame is:')
 disp(vpa(point',3));
@@ -30,6 +31,7 @@ chi2 = zeros(3,20);
 %% Figures
 % f1 is the EE point actual point and reference point
 f1=figure();
+q0(1)=q0(1)+pi;
 %T0=QtoP(q0(1:7) ,link);p_0=T0(1:3,4);
 p_0 = f(q0(1),q0(2),q0(3),q0(4),q0(5),q0(6))
 figure(f1),scatter3(p_0(1), p_0(2), p_0(3), 'filled');
@@ -55,6 +57,7 @@ ylabel('Y');
 zlabel('Z');
 %f2 is the link collided and the line intersection to calculate the point
 %through pseudoinversion
+f8=figure();
 f2=figure;
 %f3 is the robot plot
 f3=figure();
@@ -102,27 +105,39 @@ F_applied=ExternalForceAppliedActualFrame;
 initial_position=Point_intersected;
 dp=dp_0;
 d2p_ref=d2p_0;
-while (toc<300)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
-disp(t0);
-F_applied=ExternalForceAppliedActualFrame;
+while (toc<600)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
+
+
 index = index + 1;
 
-% figure(f3);
-% hold off
-% if index>1
-% prova = kuka.show(Q_sampled(index-1,:), 'visuals', 'on', 'collision', 'off');
-% hold on
-% % Adding text in the bottom right corner of the figure
-% textString = sprintf('Force = [%0.3f, %0.3f, %0.3f]\npoint = [%0.3f, %0.3f, %0.3f]\nerror = %0.3f\nlink = %d', ...
-% Point_intersectedActualFrame(1), Point_intersectedActualFrame(2), Point_intersectedActualFrame(3), ...
-% point(1), point(2), point(3), ...
-% ErrorBeforeCPF_ActualFrame,link);
-% text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignment', 'bottom', ...
-% 'FontSize', 10, 'Color', 'black');
-% view(135, 69);
-% camzoom(3);
-% 
-% end
+figure(f3);
+hold off
+if index>1
+    
+prova = kuka.show(Q_sampled(index-1,:), 'visuals', 'on', 'collision', 'off');
+
+    hold on
+    if index<100
+        if link_collided<5
+            link_collided(index)=0;
+        end
+    end
+scatter3(contact_point_PF(1,1),contact_point_PF(2,1),contact_point_PF(3,1),'r','SizeData',20)
+scatter3(RealPointIntersectedWorldFrame(1,1),RealPointIntersectedWorldFrame(2,1),RealPointIntersectedWorldFrame(3,1),'y','SizeData',20)
+% Adding text in the bottom right corner of the figure
+textString = sprintf('Force = [%0.3f, %0.3f, %0.3f]\npoint = [%0.3f, %0.3f, %0.3f]\nerror = %0.3f\nlink = %d', ...
+F_applied(1), F_applied(2), F_applied(3), ...
+point(1), point(2), point(3), ...
+ErrorBeforeCPF_ActualFrame,link_collided(index));
+text(+0.5, 0.1,0.1, textString, 'HorizontalAlignment', 'left', 'VerticalAlignment', 'bottom', ...
+'FontSize', 10, 'Color', 'black');
+view(-8, 30);
+camzoom(2);
+scatter3(p(1,1),p(2,1),p(3,1),'g','SizeData',20)
+plot3(x, y, z);
+scatter3(p_ref(1,1),p_ref(2,1),p_ref(3,1),'r','SizeData',20)
+
+end
 disp('time instant:')
 disp(t0)
 time(index)=t0;
@@ -214,23 +229,32 @@ T= QtoP(q0(1:7),link);
 RealPointIntersectedWorldFrame=T*[point;1];
 J_actualframe=T(1:3,1:3)'*J_force;
 J_w = ComputePoint_withWrenches(q0(1:7),link);
+F_applied=ExternalForceAppliedActualFrame;
 S_fext =skew_symmetric(F_applied);
 m=double(-S_fext*point(1:3));
 TauExternalForce=(J_w'*[F_applied;m])';
 ExternalForceAppliedActualFrameSampled(index,:)=F_applied;
 % 
-% %          if index<60
-% %                  TauExternalForce=[0 0 0 0 0  0 0];
-% %          end
+         if index<100
+                 TauExternalForce=[0 0 0 0 0  0 0];
+                 ExternalForceAppliedActualFrameSampled(index,:)=[0;0;0];
+                 F_applied=[0;0;0]
+         end
+
+        
+             
+
 %% COMPUTED TORQUE FL - dynamic model
 %TauExternalForce=[0 0 0 0 0  0 0];
 Kf=0;
 Kt=0.9;
 scaling_factor=1;
 Uref=scaling_factor*Uref;
-TauFL = (g + S*q0(8:14)' + B * Uref')'-Kt*Residual_calculated(index,:);  % this is the applied torque
+if index>1   
+TauFL = (g + S*q0(8:14)' + B * Uref')'-Kt*TauExternalForce;  % this is the applied torque
 Tau = TauFL+TauExternalForce; % this is the real tau applied
 acc = (inv(B)* (Tau' - friction - S*q0(8:14)' - g))';
+end
 t0 = t0+DeltaT;
 
 % % Impedance
@@ -284,10 +308,11 @@ r =inv(eye(7)+gain*DeltaT) * gain * ((B_sampled{t}*QD_sampled(t, :)' - p0) - (su
 sumRes = sumRes +r;
 end
 %% Point estimation - initialization of the contact particle filter
-errorTorque=vpa(norm(r-TauExtForce(index,:)'),2);
+errorTorque=vpa(norm(r-TauExtForce(index,:)'),2)
 Residual_calculated(index,:)=r;
 is_collided_sigma=1;
-[link_collided(index),is_collided_r] = getLink_withResidual(r,threshold_Collision);
+[link_collided(index),is_collided_r] = getLink_withResidual(r,0.002);
+
 is_collided(index)=0;
 if is_collided_r==1 && is_collided_sigma==1
 is_collided(index)=1;
@@ -295,7 +320,53 @@ end
 if is_collided(index)==0
 link_collided(index)=0;
 end
+if index<100
+    link_collided(index)=0;
+else
+    link_collided(index)=linkforce;
+end
 LinkInCollision=link_collided(index);
+
+
+% Assuming Residual_calculated, TauExtForce, and LinkInCollision are already defined
+% n is the number of samples
+if index>2
+n = size(Residual_calculated, 1);
+
+% Time vector
+time = linspace(0, (n-1) * 0.01, n);
+
+% Creating a new figure
+figure(f8);
+
+% Plotting each column of Residual_calculated in a unique color
+hold on; % Holds the current plot so that new plots do not delete existing ones
+colors = lines(7); % Generate 7 distinct colors
+for i = 1:7
+    plot(time(1:index-1), Residual_calculated(1:index-1, i), 'Color', colors(i,:));
+end
+
+hold on
+% Plotting each column of TauExtForce with dashed lines
+for i = 1:7
+    plot(time(1:index-1), TauExtForce(1:index-1, i), '--', 'Color', colors(i,:));
+end
+
+% Plotting the LinkInCollision as a black line
+plot(time(1:index-1), link_collided(1:index-1), 'k-', 'LineWidth', 0.4);
+
+yline(linkforce, 'r-', 'LineWidth', 0.2);
+% Adding labels and a legend
+xlabel('Time (seconds)');
+ylabel('Values');
+title('Residual_calculated and TauExtForce Curves with LinkInCollision Line');
+
+grid on;
+
+hold off; % Release the hold on the current figure
+
+end
+
 if is_collided(index) == 1
 %J_withwrenches = ComputePoint_withWrenches(Q_sampled(index,:),LinkInCollision);
 J_withwrenches=J_w;
@@ -310,7 +381,7 @@ wrenches5=pinv(J_withwrenches')*Residual_calculated(index,:)';
 error1 = [F_applied;m]-wrenches5;
 %wrenches3=[ExternalForceAppliedActualFrame;m];
 f_i=wrenches5(1:3);
-f_i_sampled(index,:)=f_i;
+f_i_sampled(index,:)=f_i; 
 
 
 m_i=wrenches5(4:6);
@@ -323,8 +394,7 @@ line.direction=double(T*[Lambda_coefficient;1]);
 line.direction=line.direction(1:3);
 RealPointIntersected=double(T*[point;1]);
 hold on
-figure(f2);
-hold off
+
 Point_intersected = IntersectionPoint(line,link,Point_intersected(1:3),Meshes,T);
 disp('Point_intersected')
 if isempty(Point_intersected)
@@ -377,11 +447,12 @@ if size(Point_intersected,1)>1
 Point_intersected=Point_intersected';
 end
 Point_intersectedActualFrame=double(inv(T)*[Point_intersected';1]);
+Point_intersectedActualFrame=closest_point_to_triangle3(triangles,Point_intersectedActualFrame(1:3)');
 ErrorBeforeCPF_ActualFrame=norm(RealPointIntersectedWorldFrame(1:3)-Point_intersected');
 disp('error before CPF:')
 disp(vpa(norm(ErrorBeforeCPF_ActualFrame),3))
 
-save(['sharedDatas\sharedData',num2str(linkforce)],'point', 'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','TauExternalForce');
+%save(['sharedDatas\sharedData',num2str(linkforce)],'point', 'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','TauExternalForce');
 CalculatedPoint=Point_intersectedActualFrame(1:3)';
 Rotation = T(1:3,1:3);
 tran = T(1:3,4);
@@ -389,7 +460,6 @@ load(['sharedDatas\sharedVar', num2str(linkforce)])
 
 disp(norm(CalculatedPoint(1:3)'-point));
 contact_point_PF = Rotation*CalculatedPoint'+tran;
-disp("error torquw")
 errorTorque
 
 %% Collaboration

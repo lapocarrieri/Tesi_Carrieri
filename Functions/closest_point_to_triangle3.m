@@ -11,7 +11,7 @@ function [closest_point,normale] = closest_point_to_triangle3(triangles, P)
 
     % Replicate the point P to match the number of vertices
     P_replicated = repmat(P, size(triangles_reshaped, 1), 1);
-
+    
     % Calculate distances in a vectorized manner
     distances = vecnorm(triangles_reshaped - P_replicated, 2, 2);
 
