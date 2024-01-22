@@ -11,7 +11,7 @@
 clc;
 close all;
 clear all;
-linkforce=4;
+linkforce=5;
 ss = 1;
 Sigma=0;
 n=10000;
@@ -105,13 +105,13 @@ F_applied=ExternalForceAppliedActualFrame;
 initial_position=Point_intersected;
 dp=dp_0;
 d2p_ref=d2p_0;
-while (toc<100)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
+while (toc<600)%(frequency * (t0) < 2*pi) % it ends when a circle is completed
 
-% if index==120%%linkforce==6
-%     load(['Initialization\initializations', num2str(6), '.mat'],'point','triangles','ExternalForceAppliedActualFrame')
-%     initial=1;
-%     firstcollision=1;
-% end
+if index==120%%linkforce==6
+    load(['Initialization\initializations', num2str(6), '.mat'],'point','triangles','ExternalForceAppliedActualFrame')
+    initial=1;
+    firstcollision=1;
+end
     index = index + 1;
 
 figure(f3);
@@ -126,11 +126,11 @@ prova = kuka.show(Q_sampled(index-1,:), 'visuals', 'on', 'collision', 'off');
             link_collided(index)=0;
         end
     end
-    %  if index>120
-    %     if link_collided<6
-    %         link_collided(index)=6;
-    %     end
-    % end
+     if index>120
+        if link_collided<6
+            link_collided(index)=6;
+        end
+    end
 %scatter3(contact_point_PF(1,1),contact_point_PF(2,1),contact_point_PF(3,1),'r','SizeData',20)
 scatter3(RealPointIntersectedWorldFrame(1,1),RealPointIntersectedWorldFrame(2,1),RealPointIntersectedWorldFrame(3,1),'y','SizeData',20)
 % Adding text in the bottom right corner of the figure
@@ -244,7 +244,7 @@ T= QtoP(q0(1:7),link);
 RealPointIntersectedWorldFrame=T*[point;1];
 J_actualframe=T(1:3,1:3)'*J_force;
 J_w = ComputePoint_withWrenches(q0(1:7),link);
-%F_applied=ExternalForceAppliedActualFrame;
+F_applied=ExternalForceAppliedActualFrame;
 S_fext =skew_symmetric(F_applied);
 m=double(-S_fext*point(1:3));
 TauExternalForce=(J_w'*[F_applied;m])';
@@ -335,7 +335,11 @@ end
 if is_collided(index)==0
 link_collided(index)=0;
 end
-
+if index<60
+    link_collided(index)=0;
+else
+    link_collided(index)=linkforce;
+end
 LinkInCollision=link_collided(index);
 
 
@@ -377,6 +381,7 @@ grid on;
 hold off; % Release the hold on the current figure
 
 end
+continue;
 if is_collided(index) == 1
 %J_withwrenches = ComputePoint_withWrenches(Q_sampled(index,:),LinkInCollision);
 J_withwrenches=J_w;
@@ -465,7 +470,7 @@ ErrorBeforeCPF_ActualFrame=norm(RealPointIntersectedWorldFrame(1:3)-Point_inters
 disp('error before CPF:')
 disp(vpa(norm(ErrorBeforeCPF_ActualFrame),3))
 
-save(['sharedDatas\sharedData',num2str(linkforce)],'point', 'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','TauExternalForce','linkforce');
+save(['sharedDatas\sharedData',num2str(linkforce)],'point', 'link_collided','index','chi','Q_sampled','Residual_calculated','Point_intersectedActualFrame','TauExternalForce');
 CalculatedPoint=Point_intersectedActualFrame(1:3)';
 Rotation = T(1:3,1:3);
 tran = T(1:3,4);
@@ -480,11 +485,10 @@ end
 save("plotDatas1")
 
 figure()
-grid on
 % Plot the external force in red
-stairs(time(1:index-1), TauExtForce(1:index-1,:), 'r', 'LineWidth', 0.5);
+plot(time(1:index-1), TauExtForce(1:index-1,:)', 'r', 'LineWidth', 0.5);
 hold on;
-stairs(time(1:index-1), Residual_calculated(1:index-1,:), 'b', 'LineWidth', 0.5);
+plot(time(1:index-1), Residual_calculated(1:index-1,:)', 'b', 'LineWidth', 0.5);
 % Plot the residuals in greenplot(time(1:index-1), Residual_calculated(1:index-1,:), 'g', 'LineWidth', 0.5);
 errorresidual=TauExtForce(1:index-1,:)'-Residual_calculated(1:index-1,:)';
 figure()

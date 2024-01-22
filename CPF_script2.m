@@ -1,10 +1,9 @@
-clc;
-clear all;
+for linkforce=4:7
+
 close all;
 indixes=1;
 num_part=20;
 Niterations=10;
-linkforce=5;
 load(['Initialization\initializations', num2str(linkforce), '.mat'])
 close all
 initialize=false;
@@ -37,8 +36,10 @@ f3=figure();
 f4=figure();
 chi2=zeros(3,num_part);
 tic
-while (toc<300)
+while (toc<60)
 load(['sharedDatas\sharedData',num2str(linkforce), '.mat']);
+disp("waiting for collision")
+pause(1)
 num_part=50;
 Niterations=10;
 J_w = ComputePoint_withWrenches(Q_sampled(index,:),link);
@@ -140,7 +141,7 @@ CalculatedPoint2=computeBari(chi2);
 %
 %             err=norm(centroids(2, :)'-point)
 %             err=norm(centroids(1, :)'-point)
-CalculatedPoint=closest_point_to_triangle(triangles, (CalculatedPoint2+point')/2);
+CalculatedPoint=closest_point_to_triangle(triangles, CalculatedPoint2);
 CalculatedPoint2
 CalculatedPoint
 CalculatedPointWorldFrame=T*[CalculatedPoint';1];
@@ -149,8 +150,7 @@ CalculatedPointWorldFrame=T*[CalculatedPoint';1];
 error2=norm(CalculatedPoint2(1:3)'-point);
 %ErrorAfterCPF(:,ind)
 save(['sharedDatas\sharedVar', num2str(linkforce)],'CalculatedPoint','Festimated');
-ErrorAfterCPF2(:,indexT)=norm(CalculatedPoint(1:3)'-point);
-indexT=indexT+1;
+
 figure(f3);
 hold off
 % Plotting the contact particle filter points in yellow
@@ -215,60 +215,63 @@ RealPointSampledworldframe(index2,:)=PointRealworldframe(1:3);
 CalculatedPointBeforeSampledworldframe(index2,:)=Point_intersectedActualFrame(1:3);
 index2=index2+1;
 end
-CalculatedPointSampled(index2,:)=CalculatedPoint;
-RealPointSampled(index2,:)=point;
-CalculatedPointBeforeSampled(index2,:)=Point_intersectedActualFrame(1:3);
-errorCPF(index2,:)=CalculatedPoint'-point;
-errorPinv(index2,:)=point-Point_intersectedActualFrame(1:3);
-
-PointCPFworldframe=T*[CalculatedPoint';1];
-PointRealworldframe=T*[point;1];
-PointPinvworldframe=T*Point_intersectedActualFrame;
-
-CalculatedPointSampledworldframe(index2,:)=PointCPFworldframe(1:3);
-RealPointSampledworldframe(index2,:)=PointRealworldframe(1:3);
-CalculatedPointBeforeSampledworldframe(index2,:)=Point_intersectedActualFrame(1:3);
-index2=index2+1;
-time=1:1000;
-% Create a new figure
-figure(f10);
-
-% Subplot 1: Real and Calculated Point
-subplot(2, 2, 1); % This creates a 2x2 grid and places the first plot in the first cell
-plot(time(1:index2-1), CalculatedPointSampled(1:index2-1,:)', 'r', 'LineWidth', 0.5);
-hold on;
-plot(time(1:index2-1), RealPointSampled(1:index2-1,:)', 'g', 'LineWidth', 0.5);
-title('Real and Calculated Point');
-legend('Calculated Point', 'Real Point');
-hold off;
-
-% Subplot 2: Error CPF
-subplot(2, 2, 2); % Places the second plot in the second cell
-plot(time(1:index2-1), errorCPF(1:index2-1,:)', 'r', 'LineWidth', 0.5);
-title('Error CPF');
-legend('Error CPF');
-
-% Subplot 3: Real and Calculated Point in World Frame
-subplot(2, 2, 3); % Places the third plot in the third cell
-plot(time(1:index2-1), CalculatedPointSampledworldframe(1:index2-1,:)', 'r', 'LineWidth', 0.5);
-hold on;
-plot(time(1:index2-1), RealPointSampledworldframe(1:index2-1,:)', 'g', 'LineWidth', 0.5);
-title('Real and Calculated Point in World Frame');
-legend('Calculated Point World Frame', 'Real Point World Frame');
-hold off;
-
-% Subplot 4: Error After All Process
-subplot(2, 2, 4); % Places the fourth plot in the fourth cell
-plot(time(1:size(ErrorAfterCPF2)), ErrorAfterCPF2', 'r', 'LineWidth', 0.5);
-title('Error After All Process');
-legend('Error After Process');
-
-% Adjust layout
-sgtitle('Consolidated Data Analysis'); % Super title for the entire figure
+% ErrorAfterCPF2(:,indexT)=norm(CalculatedPoint(1:3)'-point);
+% indexT=indexT+1;
+% CalculatedPointSampled(index2,:)=CalculatedPoint;
+% RealPointSampled(index2,:)=point;
+% CalculatedPointBeforeSampled(index2,:)=Point_intersectedActualFrame(1:3);
+% errorCPF(index2,:)=CalculatedPoint'-point;
+% errorPinv(index2,:)=point-Point_intersectedActualFrame(1:3);
+% 
+% PointCPFworldframe=T*[CalculatedPoint';1];
+% PointRealworldframe=T*[point;1];
+% PointPinvworldframe=T*Point_intersectedActualFrame;
+% 
+% CalculatedPointSampledworldframe(index2,:)=PointCPFworldframe(1:3);
+% RealPointSampledworldframe(index2,:)=PointRealworldframe(1:3);
+% CalculatedPointBeforeSampledworldframe(index2,:)=Point_intersectedActualFrame(1:3);
+% index2=index2+1;
+% time=1:1000;
+% % Create a new figure
+% figure(f10);
+% 
+% % Subplot 1: Real and Calculated Point
+% subplot(2, 2, 1); % This creates a 2x2 grid and places the first plot in the first cell
+% plot(time(1:index2-1), CalculatedPointSampled(1:index2-1,:)', 'r', 'LineWidth', 0.5);
+% hold on;
+% plot(time(1:index2-1), RealPointSampled(1:index2-1,:)', 'g', 'LineWidth', 0.5);
+% title('Real and Calculated Point');
+% legend('Calculated Point', 'Real Point');
+% hold off;
+% 
+% % Subplot 2: Error CPF
+% subplot(2, 2, 2); % Places the second plot in the second cell
+% plot(time(1:index2-1), errorCPF(1:index2-1,:)', 'r', 'LineWidth', 0.5);
+% title('Error CPF');
+% legend('Error CPF');
+% 
+% % Subplot 3: Real and Calculated Point in World Frame
+% subplot(2, 2, 3); % Places the third plot in the third cell
+% plot(time(1:index2-1), CalculatedPointSampledworldframe(1:index2-1,:)', 'r', 'LineWidth', 0.5);
+% hold on;
+% plot(time(1:index2-1), RealPointSampledworldframe(1:index2-1,:)', 'g', 'LineWidth', 0.5);
+% title('Real and Calculated Point in World Frame');
+% legend('Calculated Point World Frame', 'Real Point World Frame');
+% hold off;
+% 
+% % Subplot 4: Error After All Process
+% subplot(2, 2, 4); % Places the fourth plot in the fourth cell
+% hold on
+% plot(ErrorAfterCPF2', 'r', 'LineWidth', 0.5);
+% title('Error After All Process');
+% legend('Error After Process');
+% 
+% % Adjust layout
+% sgtitle('Consolidated Data Analysis'); % Super title for the entire figure
 
 
 
 end
 end
-
+end
 

@@ -165,8 +165,7 @@ tolerance = [0.5; 0.5; 0.5]; % Adjust this as needed
 
 % Non-linear constraints
 nonlcon = @(Fm) deal( ...
-    norm(Fm(1:3) - dot(Fm(1:3), normal_vector) * normal_vector) - mu * abs(dot(Fm(1:3), normal_vector)), ...
-    max(abs(Fm(1:3) - desired_Fm) - tolerance, 0) ...
+    norm(Fm(1:3) - dot(Fm(1:3), normal_vector) * normal_vector) - mu * abs(dot(Fm(1:3), normal_vector))
 );
                     % Attach the custom output function to the options
                 options.OutputFcn = @customOutputFunction;

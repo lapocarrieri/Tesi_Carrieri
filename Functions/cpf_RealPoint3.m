@@ -170,7 +170,7 @@ end
      chi2 = Particles(:, new_indeces2);
        for i=1:size(chi2,2)
      
-         chi2(:,i)=(chi2(:,i)+point)/2;
+         chi2(:,i)=chi2(:,i);
       end
     
     end
